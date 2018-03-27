@@ -38,6 +38,7 @@ tBitBlt oBitBlt = nullptr;
 
 BOOL WINAPI hkBitBlt(HDC hdcDest, int nXDest, int nYDest, int nWidth, int nHeight, HDC hdcSrc, int nXSrc, int nYSrc, DWORD dwRop)
 {
+	//experimental
 	if (nWidth > 400 || nHeight > 400) {
 		Log("nWidth %i nHeight %i nXSrc  %i nYSrc  %i\n", nWidth, nHeight, nXSrc, nYSrc);
 		nXDest = 0;
