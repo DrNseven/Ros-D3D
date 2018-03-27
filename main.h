@@ -1,4 +1,4 @@
-﻿#include <windows.h>
+#include <windows.h>
 #include <fstream>
 #include <string>
 #include <vector>
@@ -72,11 +72,11 @@ DWORD astime = timeGetTime();	//autoshoot timer
 
 // getdir & log
 char dlldir[320];
-char* GetDirFile(char *thanosname)
+char* GetDirFile(char *name)
 {
 	static char pldir[320];
 	strcpy_s(pldir, dlldir);
-	strcat_s(pldir, thanosname);
+	strcat_s(pldir, name);
 	return pldir;
 }
 
