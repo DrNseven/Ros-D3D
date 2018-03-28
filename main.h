@@ -40,7 +40,9 @@ IDirect3DVertexShader9* vShader;
 UINT vSize;
 
 bool InitOnce = true;
-LPDIRECT3DTEXTURE9 Red, Green, Yellow;
+LPDIRECT3DTEXTURE9 Red, Green, Blue, Yellow;
+
+IDirect3DBaseTexture9 *Texture;
 
 int countnum = 0;
 
@@ -56,12 +58,10 @@ int nograss = 1;				//nograss
 //aimbot settings
 int aimbot = 1;
 int aimkey = 2;
-DWORD Daimkey = VK_RBUTTON;		//aim__key
+DWORD Daimkey = VK_RBUTTON;		//aimkey
 int aimsens = 1;				//aim sensitivity, makes aim smoother
 int aimfov = 3;					//aim field of view in % 
-int aimheight = 2;				//aim height value for mensa, low value = aims heigher, high values aims lower
-int aimheightxy = 1;			//real value, aim__height * 4 + 27
-
+int aimheight = 2;				//aim height value, high value aims higher
 //autoshoot settings
 int autoshoot = 1;
 unsigned int asdelay = 49;		//use x-999 (shoot for xx millisecs, looks more legit)
@@ -166,7 +166,7 @@ void DrawBox(IDirect3DDevice9 *pDevice, float x, float y, float w, float h, D3DC
 	pDevice->SetFVF(D3DFVF_XYZRHW | D3DFVF_DIFFUSE);
 	pDevice->SetRenderState(D3DRS_ALPHABLENDENABLE, true);
 	pDevice->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA);
-	pDevice->SetRenderState(D3DRS_ZENABLE, FALSE);
+	//pDevice->SetRenderState(D3DRS_ZENABLE, FALSE);
 	pDevice->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);
 	pDevice->DrawPrimitiveUP(D3DPT_TRIANGLESTRIP, 2, V, sizeof(Vertex));
 }
@@ -306,7 +306,7 @@ int Current = true;
 int PosX = 30;
 int PosY = 27;
 
-int Show = false; //off by default
+int ShowMenu = false; //off by default
 
 POINT Pos;
 
@@ -314,7 +314,7 @@ POINT Pos;
 
 int CheckTab(int x, int y, int w, int h)
 {
-	if (Show)
+	if (ShowMenu)
 	{
 		GetCursorPos(&Pos);
 		ScreenToClient(GetForegroundWindow(), &Pos);
@@ -344,8 +344,14 @@ void lWriteText(int x, int y, DWORD color, char *text)
 	Font->DrawText(0, text, -1, &rect, DT_NOCLIP | DT_RIGHT, color);
 }
 
+void FillRGB(LPDIRECT3DDEVICE9 pDevice, int x, int y, int w, int h, D3DCOLOR color)
+{
+	D3DRECT rec = { x, y, x + w, y + h };
+	pDevice->Clear(1, &rec, D3DCLEAR_TARGET, color, 0, 0);
+}
+
 IDirect3DPixelShader9* oldsShader;
-void Slidebar(IDirect3DDevice9 *pDevice, float x, float y, float w, float h, D3DCOLOR Color)
+void DrawBox2(IDirect3DDevice9 *pDevice, float x, float y, float w, float h, D3DCOLOR Color)
 {
 	struct Vertex
 	{
@@ -357,12 +363,22 @@ void Slidebar(IDirect3DDevice9 *pDevice, float x, float y, float w, float h, D3D
 	pDevice->SetFVF(D3DFVF_XYZRHW | D3DFVF_DIFFUSE);
 	pDevice->GetPixelShader(&oldsShader);
 
-	pDevice->SetTexture(0, NULL);
+	pDevice->SetTexture(0, Blue);
 	pDevice->SetPixelShader(0);
 
-	pDevice->SetRenderState(D3DRS_ALPHABLENDENABLE, true);
-	pDevice->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA);
-	pDevice->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);
+	// mix texture color
+	pDevice->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_MODULATE);
+	pDevice->SetTextureStageState(0, D3DTSS_COLORARG1, D3DTA_TEXTURE);
+	pDevice->SetTextureStageState(0, D3DTSS_COLORARG2, D3DTA_DIFFUSE);
+
+	// mix texture alpha 
+	pDevice->SetTextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_MODULATE);
+	pDevice->SetTextureStageState(0, D3DTSS_ALPHAARG1, D3DTA_TEXTURE);
+	pDevice->SetTextureStageState(0, D3DTSS_ALPHAARG2, D3DTA_DIFFUSE);
+
+	//pDevice->SetRenderState(D3DRS_ALPHABLENDENABLE, true);
+	//pDevice->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA);
+	//pDevice->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);
 
 	pDevice->SetRenderState(D3DRS_ZENABLE, FALSE);
 	pDevice->SetRenderState(D3DRS_STENCILENABLE, FALSE);
@@ -377,7 +393,7 @@ void Slidebar(IDirect3DDevice9 *pDevice, float x, float y, float w, float h, D3D
 
 void Category(LPDIRECT3DDEVICE9 pDevice, char *text)
 {
-	if (Show)
+	if (ShowMenu)
 	{
 		int Check = CheckTab(PosX + 44, (PosY + 51) + (Current * 15), 190, 10);
 		DWORD ColorText;
@@ -398,7 +414,7 @@ void Category(LPDIRECT3DDEVICE9 pDevice, char *text)
 
 void AddItem(LPDIRECT3DDEVICE9 pDevice, char *text, int &var, char **opt, int MaxValue)
 {
-	if (Show)
+	if (ShowMenu)
 	{
 		int Check = CheckTab(PosX + 44, (PosY + 51) + (Current * 15), 190, 10);
 		DWORD ColorText;
@@ -457,24 +473,24 @@ void AddItem(LPDIRECT3DDEVICE9 pDevice, char *text, int &var, char **opt, int Ma
 
 // menu part
 char *opt_OnOff[] = { "[OFF]", "[On]" };
-//char *opt_WhChams[] = { "[OFF]", "[Green]", "[Red]", "[Yellow]" };
+char *opt_WhChams[] = { "[OFF]", "[On]", "[Color]" };
 char *opt_ZeroTen[] = { "[0]", "[1]", "[2]", "[3]", "[4]", "[5]", "[6]", "[7]", "[8]", "[9]", "[10]" };
 char *opt_Keys[] = { "[OFF]", "[Shift]", "[RMouse]", "[LMouse]", "[Ctrl]", "[Alt]", "[Space]", "[X]", "[C]" };
 char *opt_Sensitivity[] = { "[1]", "[2]", "[3]", "[4]", "[5]", "[6]", "[7]", "[8]", "[9]", "[10]", "[11]", "[12]", "[13]", "[14]", "[15]", "[16]", "[17]", "[18]", "[19]", "[20]" };
-char *opt_aimfov[] = { "[0]", "[10%]", "[20%]", "[30%]", "[40%]", "[50%]", "[60%]", "[70%]", "[80%]", "[90%]" };
+char *opt_aimfov[] = { "[0]", "[5%]", "[10%]", "[15%]", "[20%]", "[25%]", "[30%]", "[35%]", "[40%]", "[45%]" };
 char *opt_autoshoot[] = { "[OFF]", "[OnKeyDown]" };
 
 void DrawMenu(LPDIRECT3DDEVICE9 pDevice)
 {
 	if (GetAsyncKeyState(VK_INSERT) & 1)
 	{
-		Show = !Show;
+		ShowMenu = !ShowMenu;
 
 		//save settings
 		SaveCfg();
 	}
 
-	if (Show)
+	if (ShowMenu)
 	{
 		if (GetAsyncKeyState(VK_UP) & 1)
 			menuselect--;
@@ -483,18 +499,19 @@ void DrawMenu(LPDIRECT3DDEVICE9 pDevice)
 			menuselect++;
 
 		//draw background
-		Slidebar(pDevice, 71.0f, 86.0f, 200.0f, 160.0f, 200.0f);//180 = up/down, 200 = left/right
-		DrawBox(pDevice, 71, 86, 200, Current * 15, D3DCOLOR_ARGB(255, 255, 255, 255));
+		//FillRGB(pDevice, 71, 86, 200, 160, D3DCOLOR_ARGB(155, 255, 155, 255));
+		//DrawBox2(pDevice, 71.0f, 86.0f, 200.0f, 160.0f, 200.0f);//180 = up/down, 200 = left/right
+		//DrawBox(pDevice, 71, 86, 200, Current * 15, D3DCOLOR_ARGB(255, 255, 255, 255));
 
 		Current = 1;
 
-		AddItem(pDevice, " Wallhack", wallhack, opt_OnOff, 1);
+		AddItem(pDevice, " Wallhack", wallhack, opt_WhChams, 2);
 		AddItem(pDevice, " Esp", esp, opt_ZeroTen, 10);
 		AddItem(pDevice, " Aimbot", aimbot, opt_OnOff, 1);
 		AddItem(pDevice, " Aimkey", aimkey, opt_Keys, 8);
 		AddItem(pDevice, " Aimsens", aimsens, opt_Sensitivity, 19);
 		AddItem(pDevice, " Aimfov", aimfov, opt_aimfov, 9);
-		AddItem(pDevice, " Aimheight", aimheight, opt_ZeroTen, 10);
+		AddItem(pDevice, " Aimheight", aimheight, opt_ZeroTen, 5);
 		AddItem(pDevice, " Autoshoot", autoshoot, opt_autoshoot, 1);
 		AddItem(pDevice, " No Grass", nograss, opt_OnOff, 1);
 

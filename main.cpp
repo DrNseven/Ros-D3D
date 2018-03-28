@@ -1,5 +1,5 @@
 /*
-* Ros D3D 0.8 by n7
+* Ros D3D 0.8b by n7
 
 How to compile:
 - compile with visual studio community 2017 (..\Microsoft Visual Studio\2017\Community\Common7\IDE\devenv.exe)
@@ -38,7 +38,6 @@ tBitBlt oBitBlt = nullptr;
 
 BOOL WINAPI hkBitBlt(HDC hdcDest, int nXDest, int nYDest, int nWidth, int nHeight, HDC hdcSrc, int nXSrc, int nYSrc, DWORD dwRop)
 {
-	//experimental
 	if (nWidth > 400 || nHeight > 400) {
 		Log("nWidth %i nHeight %i nXSrc  %i nYSrc  %i\n", nWidth, nHeight, nXSrc, nYSrc);
 		nXDest = 0;
@@ -69,11 +68,14 @@ HRESULT APIENTRY SetStreamSource_hook(LPDIRECT3DDEVICE9 pDevice, UINT StreamNumb
 
 HRESULT APIENTRY SetTexture_hook(LPDIRECT3DDEVICE9 pDevice, DWORD Sampler, IDirect3DBaseTexture9 *pTexture)
 {
+	//Texture = pTexture;
+
 	if (InitOnce)
 	{
 		InitOnce = false;
 		GenerateTexture(pDevice, &Red, D3DCOLOR_ARGB(255, 255, 0, 0));
 		GenerateTexture(pDevice, &Green, D3DCOLOR_RGBA(0, 255, 0, 255));
+		GenerateTexture(pDevice, &Blue, D3DCOLOR_ARGB(255, 0, 0, 255));
 		GenerateTexture(pDevice, &Yellow, D3DCOLOR_ARGB(255, 255, 255, 0));
 
 		LoadCfg();
@@ -85,17 +87,16 @@ HRESULT APIENTRY SetTexture_hook(LPDIRECT3DDEVICE9 pDevice, DWORD Sampler, IDire
 			if (SUCCEEDED(vShader->GetFunction(NULL, &vSize)))
 				if (vShader != NULL) { vShader->Release(); vShader = NULL; }
 
-	//wallhack
 	if(wallhack>0)
 	{
 		pDevice->SetRenderState(D3DRS_DEPTHBIAS, 0);
 		if (vSize == 2300 || vSize == 900 ||
 			vSize == 1952 || vSize == 640)//vSize == 1436
 		{
-			if(wallhack==1)
+			if(wallhack==2)
 			{
-				float sGreen[4] = { 0.0f, 1.0f, 0.0f, 1.0f };
-				pDevice->SetPixelShaderConstantF(0, sGreen, 4);
+				float sColor[4] = { 0.0f, 1.0f, 0.0f, 1.0f };//green
+				pDevice->SetPixelShaderConstantF(0, sColor, 1);
 			}
 
 			float bias = 1000.0f;
@@ -151,11 +152,12 @@ HRESULT APIENTRY Present_hook(IDirect3DDevice9* pDevice, const RECT *pSourceRect
 	if (Font == NULL)
 		D3DXCreateFont(pDevice, 14, 0, FW_BOLD, 0, FALSE, DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, DEFAULT_QUALITY, DEFAULT_PITCH | FF_DONTCARE, TEXT("Italic"), &Font);
 
-	//
+	if (ShowMenu)
+		//draw background
+		DrawBox2(pDevice, 71.0f, 86.0f, 200.0f, 160.0f, D3DCOLOR_ARGB(120, 30, 200, 200));//180 = up/down, 200 = left/right
+
 	if (Font)
-	{
 		DrawMenu(pDevice);
-	}
 
 	//Shift|RMouse|LMouse|Ctrl|Alt|Space|X|C
 	if (aimkey == 0) Daimkey = 0;
@@ -178,14 +180,14 @@ HRESULT APIENTRY Present_hook(IDirect3DDevice9* pDevice, const RECT *pSourceRect
 			//DrawBox(pDevice, (int)WeaponEspInfo[i].pOutX, (int)WeaponEspInfo[i].pOutY, 6.0f, 12.0f, D3DCOLOR_ARGB(120, 30, 200, 200));
 
 			//line esp
-			if (WeaponEspInfo[i].pOutX > 1.0f && WeaponEspInfo[i].pOutY > 1.0f && (float)WeaponEspInfo[i].distance > 1.0f)
+			if (WeaponEspInfo[i].pOutX > 1.0f && WeaponEspInfo[i].pOutY > 1.0f && (float)WeaponEspInfo[i].distance > 40.0f)
 				DrawLine(pDevice, (int)WeaponEspInfo[i].pOutX, (int)WeaponEspInfo[i].pOutY, ScreenCX, ScreenCY * ((float)esp * 0.2f), 20, D3DCOLOR_ARGB(255, 255, 255, 255));//0.1up, 1.0middle, 2.0down
 
 			//distance esp
 			if (WeaponEspInfo[i].pOutX > 1.0f && WeaponEspInfo[i].pOutY > 1.0f && (float)WeaponEspInfo[i].distance > 2000.0f)
-				DrawString(Font, (int)WeaponEspInfo[i].pOutX, (int)WeaponEspInfo[i].pOutY, D3DCOLOR_ARGB(255, 255, 255, 0), "%.f", (float)WeaponEspInfo[i].distance / 10.0f);
+				DrawString(Font, (int)WeaponEspInfo[i].pOutX, (int)WeaponEspInfo[i].pOutY, D3DCOLOR_ARGB(255, 255, 255, 255), "%.f", (float)WeaponEspInfo[i].distance / 10.0f);
 			if (WeaponEspInfo[i].pOutX > 1.0f && WeaponEspInfo[i].pOutY > 1.0f && (float)WeaponEspInfo[i].distance > 40.0f && (float)WeaponEspInfo[i].distance <= 2000.0f)
-				DrawString(Font, (int)WeaponEspInfo[i].pOutX, (int)WeaponEspInfo[i].pOutY, D3DCOLOR_ARGB(255, 0, 255, 0), "%.f", (float)WeaponEspInfo[i].distance / 10.0f);
+				DrawString(Font, (int)WeaponEspInfo[i].pOutX, (int)WeaponEspInfo[i].pOutY, D3DCOLOR_ARGB(255, 255, 255, 0), "%.f", (float)WeaponEspInfo[i].distance / 10.0f);
 
 			//text esp
 			//if (WeaponEspInfo[i].pOutX > 1.0f && WeaponEspInfo[i].pOutY > 1.0f && (float)WeaponEspInfo[i].distance > 1.0f)
@@ -202,8 +204,8 @@ HRESULT APIENTRY Present_hook(IDirect3DDevice9* pDevice, const RECT *pSourceRect
 		for (unsigned int i = 0; i < WeaponEspInfo.size(); i++)
 		{	
 			//aimfov
-			float radiusx = (aimfov*10.0f) * (ScreenCX / 100.0f);
-			float radiusy = (aimfov*10.0f) * (ScreenCY / 100.0f);
+			float radiusx = (aimfov*5.0f) * (ScreenCX / 100.0f);
+			float radiusy = (aimfov*5.0f) * (ScreenCY / 100.0f);
 
 			if (aimfov == 0)
 			{
@@ -227,7 +229,7 @@ HRESULT APIENTRY Present_hook(IDirect3DDevice9* pDevice, const RECT *pSourceRect
 
 
 		//if nearest target to crosshair
-		if (BestTarget != -1)
+		if (BestTarget != -1 && WeaponEspInfo[BestTarget].distance > 40.0f)
 		{
 			double DistX = WeaponEspInfo[BestTarget].pOutX - ScreenCX;
 			double DistY = WeaponEspInfo[BestTarget].pOutY - ScreenCY;
@@ -283,6 +285,13 @@ HRESULT APIENTRY Present_hook(IDirect3DDevice9* pDevice, const RECT *pSourceRect
 
 HRESULT APIENTRY EndScene_hook(IDirect3DDevice9* pDevice)
 {
+	//if (ShowMenu)
+		//draw background
+		//DrawBox2(pDevice, 71.0f, 86.0f, 200.0f, 160.0f, D3DCOLOR_ARGB(1, 30, 200, 200));//180 = up/down, 200 = left/right
+
+	if (Font)
+		DrawMenu(pDevice);
+	
 	return EndScene_orig(pDevice);
 }
 
@@ -369,8 +378,8 @@ DWORD WINAPI RosD3D(__in LPVOID lpParameter)
 	if (MH_Initialize() != MH_OK) { return 1; }
 	if (MH_CreateHook((DWORD_PTR*)dVtable[17], &Present_hook, reinterpret_cast<void**>(&Present_orig)) != MH_OK) { return 1; }
 	if (MH_EnableHook((DWORD_PTR*)dVtable[17]) != MH_OK) { return 1; }
-	//if (MH_CreateHook((DWORD_PTR*)dVtable[42], &EndScene_hook, reinterpret_cast<void**>(&EndScene_orig)) != MH_OK) { return 1; }
-	//if (MH_EnableHook((DWORD_PTR*)dVtable[42]) != MH_OK) { return 1; }
+	if (MH_CreateHook((DWORD_PTR*)dVtable[42], &EndScene_hook, reinterpret_cast<void**>(&EndScene_orig)) != MH_OK) { return 1; }
+	if (MH_EnableHook((DWORD_PTR*)dVtable[42]) != MH_OK) { return 1; }
 	if (MH_CreateHook((DWORD_PTR*)dVtable[100], &SetStreamSource_hook, reinterpret_cast<void**>(&SetStreamSource_orig)) != MH_OK) { return 1; }
 	if (MH_EnableHook((DWORD_PTR*)dVtable[100]) != MH_OK) { return 1; }
 	if (MH_CreateHook((DWORD_PTR*)dVtable[65], &SetTexture_hook, reinterpret_cast<void**>(&SetTexture_orig)) != MH_OK) { return 1; }
