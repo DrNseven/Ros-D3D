@@ -83,7 +83,7 @@ HRESULT APIENTRY SetTexture_hook(LPDIRECT3DDEVICE9 pDevice, DWORD Sampler, IDire
 			vSize == 1952 || vSize == 640) || (Stride == 36 && vSize == 1436))
 		{
 			pDevice->SetRenderState(D3DRS_FOGENABLE, false);//test
-			if (wallhack == 2)
+			if (wallhack == 2 && vSize != 1436)
 			{
 				float sColor[4] = { 0.0f, 1.0f, 0.0f, 1.0f };//green
 				pDevice->SetPixelShaderConstantF(0, sColor, 1);
@@ -91,11 +91,11 @@ HRESULT APIENTRY SetTexture_hook(LPDIRECT3DDEVICE9 pDevice, DWORD Sampler, IDire
 				//SetTexture_orig(pDevice, 1, Red);
 			}
 
-			if (wallhack == 2 && Stride == 36 && vSize == 1436)//weapons on ground
-			{
-				float sColorr[4] = { 1.0f, 1.0f, 0.0f, 1.0f };
-				pDevice->SetPixelShaderConstantF(0, sColorr, 4);
-			}
+			//if (wallhack == 2 && Stride == 36 && vSize == 1436)//weapons on ground
+			//{
+				//float sColorr[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
+				//pDevice->SetPixelShaderConstantF(0, sColorr, 4);
+			//}
 
 			float bias = 1000.0f;
 			float bias_float = static_cast<float>(-bias);
@@ -205,11 +205,11 @@ HRESULT APIENTRY Present_hook(IDirect3DDevice9* pDevice, const RECT *pSourceRect
 		{
 			//box esp
 			if (WeaponEspInfo[i].pOutX > 1.0f && WeaponEspInfo[i].pOutY > 1.0f && (float)WeaponEspInfo[i].distance > 40.0f && (float)WeaponEspInfo[i].distance < 1000.0f)
-				DrawBox(pDevice, (int)WeaponEspInfo[i].pOutX, (int)WeaponEspInfo[i].pOutY - 20.0f, 12.0f, 11.0f, D3DCOLOR_ARGB(12, 30, 200, 200));
+				DrawBox(pDevice, (int)WeaponEspInfo[i].pOutX, (int)WeaponEspInfo[i].pOutY - 20.0f, 12.0f, 12.0f, D3DCOLOR_ARGB(12, 30, 200, 200));//25, 18, 12
 			if (WeaponEspInfo[i].pOutX > 1.0f && WeaponEspInfo[i].pOutY > 1.0f && (float)WeaponEspInfo[i].distance >= 1000.0f && (float)WeaponEspInfo[i].distance < 10000.0f)
-				DrawBox(pDevice, (int)WeaponEspInfo[i].pOutX, (int)WeaponEspInfo[i].pOutY - 20.0f, 18.0f, 11.0f, D3DCOLOR_ARGB(12, 30, 200, 200));
+				DrawBox(pDevice, (int)WeaponEspInfo[i].pOutX, (int)WeaponEspInfo[i].pOutY - 20.0f, 18.0f, 12.0f, D3DCOLOR_ARGB(12, 30, 200, 200));//25, 18, 12
 			if (WeaponEspInfo[i].pOutX > 1.0f && WeaponEspInfo[i].pOutY > 1.0f && (float)WeaponEspInfo[i].distance >= 10000.0f && (float)WeaponEspInfo[i].distance < 90000.0f)
-				DrawBox(pDevice, (int)WeaponEspInfo[i].pOutX, (int)WeaponEspInfo[i].pOutY - 20.0f, 24.0f, 11.0f, D3DCOLOR_ARGB(12, 30, 200, 200));
+				DrawBox(pDevice, (int)WeaponEspInfo[i].pOutX, (int)WeaponEspInfo[i].pOutY - 20.0f, 24.0f, 12.0f, D3DCOLOR_ARGB(12, 30, 200, 200));//25, 18, 12
 
 			//line esp
 			if (WeaponEspInfo[i].pOutX > 1.0f && WeaponEspInfo[i].pOutY > 1.0f && (float)WeaponEspInfo[i].distance > 40.0f)
