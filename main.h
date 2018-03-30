@@ -36,9 +36,6 @@ float ScreenCY;
 
 LPD3DXFONT Font; //font
 
-IDirect3DPixelShader9* pShader;
-UINT pSize;
-
 IDirect3DVertexShader9* vShader;
 UINT vSize;
 
@@ -156,6 +153,7 @@ void AddWeapons(LPDIRECT3DDEVICE9 Device)
 
 //==========================================================================================================================
 
+IDirect3DPixelShader9* oldsShader;
 void DrawBox(IDirect3DDevice9 *pDevice, float x, float y, float w, float h, D3DCOLOR Color)
 {
 	struct Vertex
@@ -165,13 +163,35 @@ void DrawBox(IDirect3DDevice9 *pDevice, float x, float y, float w, float h, D3DC
 	}
 	V[4] = { { x, y + h, 0.0f, 0.0f, Color },{ x, y, 0.0f, 0.01f, Color },
 	{ x + w, y + h, 0.0f, 0.0f, Color },{ x + w, y, 0.0f, 0.0f, Color } };
-	pDevice->SetTexture(0, NULL);
-	pDevice->SetPixelShader(0);
 	pDevice->SetFVF(D3DFVF_XYZRHW | D3DFVF_DIFFUSE);
-	pDevice->SetRenderState(D3DRS_ALPHABLENDENABLE, true);
-	pDevice->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA);
-	pDevice->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);
+	pDevice->GetPixelShader(&oldsShader);
+
+	pDevice->SetTexture(0, Blue);
+	pDevice->SetPixelShader(0);
+
+	// mix texture color
+	pDevice->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_MODULATE);
+	pDevice->SetTextureStageState(0, D3DTSS_COLORARG1, D3DTA_TEXTURE);
+	pDevice->SetTextureStageState(0, D3DTSS_COLORARG2, D3DTA_DIFFUSE);
+
+	// mix texture alpha 
+	pDevice->SetTextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_MODULATE);
+	pDevice->SetTextureStageState(0, D3DTSS_ALPHAARG1, D3DTA_TEXTURE);
+	pDevice->SetTextureStageState(0, D3DTSS_ALPHAARG2, D3DTA_DIFFUSE);
+
+	//pDevice->SetRenderState(D3DRS_ALPHABLENDENABLE, true);
+	//pDevice->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA);
+	//pDevice->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);
+
+	pDevice->SetRenderState(D3DRS_ZENABLE, FALSE);
+	pDevice->SetRenderState(D3DRS_STENCILENABLE, FALSE);
+
 	pDevice->DrawPrimitiveUP(D3DPT_TRIANGLESTRIP, 2, V, sizeof(Vertex));
+
+	pDevice->SetRenderState(D3DRS_ZENABLE, TRUE);
+	pDevice->SetRenderState(D3DRS_STENCILENABLE, TRUE);
+
+	pDevice->SetPixelShader(oldsShader);
 }
 
 HRESULT DrawString(LPD3DXFONT Font, INT X, INT Y, DWORD dColor, CONST PCHAR cString, ...)
@@ -293,14 +313,6 @@ void LoadCfg()
 
 //==========================================================================================================================
 
-//#define White				D3DCOLOR_ARGB(255, 255, 255, 255)
-//#define Yellow			D3DCOLOR_ARGB(255, 255, 255, 0)
-//#define TBlack			D3DCOLOR_ARGB(180, 0, 0, 0) 
-//#define Black				D3DCOLOR_ARGB(255, 0, 0, 0) 
-//#define Red				D3DCOLOR_ARGB(255, 255, 0, 0)
-//#define Green				D3DCOLOR_ARGB(255, 0, 255, 0)
-//#define DarkOutline		D3DCOLOR_ARGB(255, 37, 48, 52)
-
 // menu stuff
 
 int menuselect = 0;
@@ -347,52 +359,11 @@ void lWriteText(int x, int y, DWORD color, char *text)
 	Font->DrawText(0, text, -1, &rect, DT_NOCLIP | DT_RIGHT, color);
 }
 
-void FillRGB(LPDIRECT3DDEVICE9 pDevice, int x, int y, int w, int h, D3DCOLOR color)
-{
-	D3DRECT rec = { x, y, x + w, y + h };
-	pDevice->Clear(1, &rec, D3DCLEAR_TARGET, color, 0, 0);
-}
-
-IDirect3DPixelShader9* oldsShader;
-void DrawBox2(IDirect3DDevice9 *pDevice, float x, float y, float w, float h, D3DCOLOR Color)
-{
-	struct Vertex
-	{
-		float x, y, z, ht;
-		DWORD Color;
-	}
-	V[4] = { { x, y + h, 0.0f, 0.0f, Color },{ x, y, 0.0f, 0.01f, Color },
-	{ x + w, y + h, 0.0f, 0.0f, Color },{ x + w, y, 0.0f, 0.0f, Color } };
-	pDevice->SetFVF(D3DFVF_XYZRHW | D3DFVF_DIFFUSE);
-	pDevice->GetPixelShader(&oldsShader);
-
-	pDevice->SetTexture(0, Blue);
-	pDevice->SetPixelShader(0);
-
-	// mix texture color
-	pDevice->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_MODULATE);
-	pDevice->SetTextureStageState(0, D3DTSS_COLORARG1, D3DTA_TEXTURE);
-	pDevice->SetTextureStageState(0, D3DTSS_COLORARG2, D3DTA_DIFFUSE);
-
-	// mix texture alpha 
-	pDevice->SetTextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_MODULATE);
-	pDevice->SetTextureStageState(0, D3DTSS_ALPHAARG1, D3DTA_TEXTURE);
-	pDevice->SetTextureStageState(0, D3DTSS_ALPHAARG2, D3DTA_DIFFUSE);
-
-	//pDevice->SetRenderState(D3DRS_ALPHABLENDENABLE, true);
-	//pDevice->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA);
-	//pDevice->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);
-
-	pDevice->SetRenderState(D3DRS_ZENABLE, FALSE);
-	pDevice->SetRenderState(D3DRS_STENCILENABLE, FALSE);
-
-	pDevice->DrawPrimitiveUP(D3DPT_TRIANGLESTRIP, 2, V, sizeof(Vertex));
-
-	pDevice->SetRenderState(D3DRS_ZENABLE, TRUE);
-	pDevice->SetRenderState(D3DRS_STENCILENABLE, TRUE);
-
-	pDevice->SetPixelShader(oldsShader);
-}
+//void FillRGB(LPDIRECT3DDEVICE9 pDevice, int x, int y, int w, int h, D3DCOLOR color)
+//{
+	//D3DRECT rec = { x, y, x + w, y + h };
+	//pDevice->Clear(1, &rec, D3DCLEAR_TARGET, color, 0, 0);
+//}
 
 void Category(LPDIRECT3DDEVICE9 pDevice, char *text)
 {
@@ -500,11 +471,6 @@ void DrawMenu(LPDIRECT3DDEVICE9 pDevice)
 
 		if (GetAsyncKeyState(VK_DOWN) & 1)
 			menuselect++;
-
-		//draw background
-		//FillRGB(pDevice, 71, 86, 200, 160, D3DCOLOR_ARGB(155, 255, 155, 255));
-		//DrawBox2(pDevice, 71.0f, 86.0f, 200.0f, 160.0f, 200.0f);//180 = up/down, 200 = left/right
-		//DrawBox(pDevice, 71, 86, 200, Current * 15, D3DCOLOR_ARGB(255, 255, 255, 255));
 
 		Current = 1;
 
