@@ -61,10 +61,10 @@ HRESULT APIENTRY SetTexture_hook(LPDIRECT3DDEVICE9 pDevice, DWORD Sampler, IDire
 	}
 
 	//get pSize
-	if (SUCCEEDED(pDevice->GetPixelShader(&pShader)))
-		if (pShader != NULL)
-			if (SUCCEEDED(pShader->GetFunction(NULL, &pSize)))
-				if (pShader != NULL) { pShader->Release(); pShader = NULL; }
+	//if (SUCCEEDED(pDevice->GetPixelShader(&pShader)))
+		//if (pShader != NULL)
+			//if (SUCCEEDED(pShader->GetFunction(NULL, &pSize)))
+				//if (pShader != NULL) { pShader->Release(); pShader = NULL; }
 
 	//get vSize
 	if (SUCCEEDED(pDevice->GetVertexShader(&vShader)))
@@ -117,15 +117,15 @@ HRESULT APIENTRY SetTexture_hook(LPDIRECT3DDEVICE9 pDevice, DWORD Sampler, IDire
 	}
 
 	//logger
-	if (GetAsyncKeyState('O') & 1) //-
-	countnum--;
-	if (GetAsyncKeyState('P') & 1) //+
-	countnum++;
-	if (countnum == pSize / 100|| countnum == vSize / 100)
-	if (GetAsyncKeyState('I') & 1) //log
-	Log("Stride == %d && pSize == %d && vSize == %d", Stride, pSize, vSize);
-	if (countnum == pSize / 100 || countnum == vSize / 100)
-	return D3D_OK; //delete texture
+	//if (GetAsyncKeyState('O') & 1) //-
+	//countnum--;
+	//if (GetAsyncKeyState('P') & 1) //+
+	//countnum++;
+	//if (countnum == pSize / 100|| countnum == vSize / 100)
+	//if (GetAsyncKeyState('I') & 1) //log
+	//Log("Stride == %d && pSize == %d && vSize == %d", Stride, pSize, vSize);
+	//if (countnum == pSize / 100 || countnum == vSize / 100)
+	//return D3D_OK; //delete texture
 	//pDevice->SetRenderState(D3DRS_FILLMODE, D3DFILL_POINT);
 
 	return SetTexture_orig(pDevice, Sampler, pTexture);
@@ -272,7 +272,7 @@ HRESULT APIENTRY Present_hook(IDirect3DDevice9* pDevice, const RECT *pSourceRect
 		}
 	}
 
-	
+	/*
 	//draw logger
 	if (Font)
 	{
@@ -284,7 +284,7 @@ HRESULT APIENTRY Present_hook(IDirect3DDevice9* pDevice, const RECT *pSourceRect
 	DrawString(Font, 220, 110, D3DCOLOR_ARGB(255, 255, 255, 255), "hold P to +");
 	DrawString(Font, 220, 120, D3DCOLOR_ARGB(255, 255, 255, 255), "hold O to -");
 	}
-	
+	*/
 	return Present_orig(pDevice, pSourceRect, pDestRect, hDestWindowOverride, pDirtyRegion);
 }
 
