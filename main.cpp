@@ -1,5 +1,5 @@
 /*
-* Ros D3D 0.8b by n7
+* Ros D3D 0.8c by n7
 
 How to compile:
 - compile with visual studio community 2017 (..\Microsoft Visual Studio\2017\Community\Common7\IDE\devenv.exe)
@@ -33,27 +33,6 @@ typedef HRESULT(APIENTRY *Reset_t)(IDirect3DDevice9*, D3DPRESENT_PARAMETERS*);
 HRESULT APIENTRY Reset_hook(IDirect3DDevice9*, D3DPRESENT_PARAMETERS*);
 Reset_t Reset_orig = 0;
 
-typedef BOOL(__stdcall* tBitBlt)(HDC hdcDest, int nXDest, int nYDest, int nWidth, int nHeight, HDC hdcSrc, int nXSrc, int nYSrc, DWORD dwRop);
-tBitBlt oBitBlt = nullptr;
-
-BOOL WINAPI hkBitBlt(HDC hdcDest, int nXDest, int nYDest, int nWidth, int nHeight, HDC hdcSrc, int nXSrc, int nYSrc, DWORD dwRop)
-{
-	if (nWidth > 400 || nHeight > 400) {
-		Log("nWidth %i nHeight %i nXSrc  %i nYSrc  %i\n", nWidth, nHeight, nXSrc, nYSrc);
-		nXDest = 0;
-		nYDest = 0;
-		nWidth = 0;
-		nHeight = 0;
-		nXSrc = 0;
-		nYSrc = 0;
-		dwRop = WHITENESS;
-		return oBitBlt(hdcDest, nXDest, nYDest, nWidth, nHeight, hdcSrc, nXSrc, nYSrc, WHITENESS);
-	}
-
-	//return oBitBlt(hdcDest, nXDest, nYDest, nWidth, nHeight, hCleanScreenshot, nXSrc, nYSrc, WHITENESS);
-	return oBitBlt(hdcDest, nXDest, nYDest, nWidth, nHeight, hdcSrc, nXSrc, nYSrc, dwRop);
-}
-
 //==========================================================================================================================
 
 HRESULT APIENTRY SetStreamSource_hook(LPDIRECT3DDEVICE9 pDevice, UINT StreamNumber, IDirect3DVertexBuffer9* pStreamData, UINT OffsetInBytes, UINT sStride)
@@ -81,22 +60,35 @@ HRESULT APIENTRY SetTexture_hook(LPDIRECT3DDEVICE9 pDevice, DWORD Sampler, IDire
 		LoadCfg();
 	}
 
+	//get pSize
+	if (SUCCEEDED(pDevice->GetPixelShader(&pShader)))
+		if (pShader != NULL)
+			if (SUCCEEDED(pShader->GetFunction(NULL, &pSize)))
+				if (pShader != NULL) { pShader->Release(); pShader = NULL; }
+
 	//get vSize
 	if (SUCCEEDED(pDevice->GetVertexShader(&vShader)))
 		if (vShader != NULL)
 			if (SUCCEEDED(vShader->GetFunction(NULL, &vSize)))
 				if (vShader != NULL) { vShader->Release(); vShader = NULL; }
 
-	if(wallhack>0)
+	//model rec sample
+	//Stride == 36 && pSize == 1724 && vSize == 1952 //legs
+	//Stride == 36 && pSize == 1848 && vSize == 2300 //chest
+	//Stride == 44 && pSize == 2272 && vSize == 2300 //hair
+
+	if (wallhack>0)
 	{
 		pDevice->SetRenderState(D3DRS_DEPTHBIAS, 0);
 		if (vSize == 2300 || vSize == 900 ||
 			vSize == 1952 || vSize == 640)//vSize == 1436
 		{
-			if(wallhack==2)
+			if (wallhack == 2)
 			{
 				float sColor[4] = { 0.0f, 1.0f, 0.0f, 1.0f };//green
 				pDevice->SetPixelShaderConstantF(0, sColor, 1);
+				//SetTexture_orig(pDevice, 0, Red);
+				//SetTexture_orig(pDevice, 1, Red);
 			}
 
 			float bias = 1000.0f;
@@ -107,15 +99,15 @@ HRESULT APIENTRY SetTexture_hook(LPDIRECT3DDEVICE9 pDevice, DWORD Sampler, IDire
 	}
 
 	//worldtoscreen weapons in hand
-	if (aimbot == 1||esp > 0)
+	if (aimbot == 1 || esp > 0)
 	{
 		if (Stride == 48 || vSize == 2300 || vSize == 900 ||
-		vSize == 1952 || vSize == 640)
-		AddWeapons(pDevice);
+			vSize == 1952 || vSize == 640)
+			AddWeapons(pDevice);
 	}
-
+	
 	//no grass by mtsagossi
-	if(nograss==1)
+	if (nograss == 1)
 	{
 		pDevice->SetRenderState(D3DRS_FILLMODE, D3DFILL_SOLID);
 		if (vSize == 1660 || vSize == 1704)
@@ -124,18 +116,18 @@ HRESULT APIENTRY SetTexture_hook(LPDIRECT3DDEVICE9 pDevice, DWORD Sampler, IDire
 		}
 	}
 
-	
 	//logger
-	//if (GetAsyncKeyState('O') & 1) //-
-	//countnum--;
-	//if (GetAsyncKeyState('P') & 1) //+
-	//countnum++;
-	//if (countnum == vSize / 100)
-	//if (GetAsyncKeyState('I') & 1) //log
-	//Log("Stride == %d && numelements == %d && decl->Type == %d && pSize == %d && vSize == %d", Stride, numelements, decl->Type, pSize, vSize);
-	//if (countnum == vSize/100)
-	//return D3D_OK; //delete texture
-	
+	if (GetAsyncKeyState('O') & 1) //-
+	countnum--;
+	if (GetAsyncKeyState('P') & 1) //+
+	countnum++;
+	if (countnum == pSize / 100|| countnum == vSize / 100)
+	if (GetAsyncKeyState('I') & 1) //log
+	Log("Stride == %d && pSize == %d && vSize == %d", Stride, pSize, vSize);
+	if (countnum == pSize / 100 || countnum == vSize / 100)
+	return D3D_OK; //delete texture
+	//pDevice->SetRenderState(D3DRS_FILLMODE, D3DFILL_POINT);
+
 	return SetTexture_orig(pDevice, Sampler, pTexture);
 }
 
@@ -159,6 +151,17 @@ HRESULT APIENTRY Present_hook(IDirect3DDevice9* pDevice, const RECT *pSourceRect
 	if (Font)
 		DrawMenu(pDevice);
 
+	if (screenshot_taken)
+	{
+		DrawString(Font, ScreenCX-20.0f, ScreenCY-20.0f, D3DCOLOR_ARGB(255, 255, 255, 255), "Screenshot Taken (gm_complaint)");
+
+		if (timeGetTime() - screen_pause >= 799)
+		{
+			screenshot_taken = false;
+			screen_pause = timeGetTime();
+		}
+	}
+
 	//Shift|RMouse|LMouse|Ctrl|Alt|Space|X|C
 	if (aimkey == 0) Daimkey = 0;
 	if (aimkey == 1) Daimkey = VK_SHIFT;
@@ -176,8 +179,12 @@ HRESULT APIENTRY Present_hook(IDirect3DDevice9* pDevice, const RECT *pSourceRect
 		for (unsigned int i = 0; i < WeaponEspInfo.size(); i++)
 		{
 			//box esp
-			//if (WeaponEspInfo[i].pOutX > 1.0f && WeaponEspInfo[i].pOutY > 1.0f && (float)WeaponEspInfo[i].distance > 1.0f)
-			//DrawBox(pDevice, (int)WeaponEspInfo[i].pOutX, (int)WeaponEspInfo[i].pOutY, 6.0f, 12.0f, D3DCOLOR_ARGB(120, 30, 200, 200));
+			if (WeaponEspInfo[i].pOutX > 1.0f && WeaponEspInfo[i].pOutY > 1.0f && (float)WeaponEspInfo[i].distance > 40.0f && (float)WeaponEspInfo[i].distance < 1000.0f)
+			DrawBox2(pDevice, (int)WeaponEspInfo[i].pOutX, (int)WeaponEspInfo[i].pOutY-20.0f, 12.0f, 12.0f, D3DCOLOR_ARGB(12, 30, 200, 200));//25, 18, 12
+			if (WeaponEspInfo[i].pOutX > 1.0f && WeaponEspInfo[i].pOutY > 1.0f && (float)WeaponEspInfo[i].distance >= 1000.0f && (float)WeaponEspInfo[i].distance < 10000.0f)
+			DrawBox2(pDevice, (int)WeaponEspInfo[i].pOutX, (int)WeaponEspInfo[i].pOutY - 20.0f, 18.0f, 12.0f, D3DCOLOR_ARGB(12, 30, 200, 200));//25, 18, 12
+			if (WeaponEspInfo[i].pOutX > 1.0f && WeaponEspInfo[i].pOutY > 1.0f && (float)WeaponEspInfo[i].distance >= 10000.0f && (float)WeaponEspInfo[i].distance < 90000.0f)
+			DrawBox2(pDevice, (int)WeaponEspInfo[i].pOutX, (int)WeaponEspInfo[i].pOutY - 20.0f, 24.0f, 12.0f, D3DCOLOR_ARGB(12, 30, 200, 200));//25, 18, 12
 
 			//line esp
 			if (WeaponEspInfo[i].pOutX > 1.0f && WeaponEspInfo[i].pOutY > 1.0f && (float)WeaponEspInfo[i].distance > 40.0f)
@@ -185,9 +192,9 @@ HRESULT APIENTRY Present_hook(IDirect3DDevice9* pDevice, const RECT *pSourceRect
 
 			//distance esp
 			if (WeaponEspInfo[i].pOutX > 1.0f && WeaponEspInfo[i].pOutY > 1.0f && (float)WeaponEspInfo[i].distance > 2000.0f)
-				DrawString(Font, (int)WeaponEspInfo[i].pOutX, (int)WeaponEspInfo[i].pOutY, D3DCOLOR_ARGB(255, 255, 255, 255), "%.f", (float)WeaponEspInfo[i].distance / 10.0f);
+				DrawString(Font, (int)WeaponEspInfo[i].pOutX, (int)WeaponEspInfo[i].pOutY-20.0f, D3DCOLOR_ARGB(255, 255, 255, 255), "%.f", (float)WeaponEspInfo[i].distance / 10.0f);
 			if (WeaponEspInfo[i].pOutX > 1.0f && WeaponEspInfo[i].pOutY > 1.0f && (float)WeaponEspInfo[i].distance > 40.0f && (float)WeaponEspInfo[i].distance <= 2000.0f)
-				DrawString(Font, (int)WeaponEspInfo[i].pOutX, (int)WeaponEspInfo[i].pOutY, D3DCOLOR_ARGB(255, 255, 255, 0), "%.f", (float)WeaponEspInfo[i].distance / 10.0f);
+				DrawString(Font, (int)WeaponEspInfo[i].pOutX, (int)WeaponEspInfo[i].pOutY - 20.0f, D3DCOLOR_ARGB(255, 255, 255, 0), "%.f", (float)WeaponEspInfo[i].distance / 10.0f);
 
 			//text esp
 			//if (WeaponEspInfo[i].pOutX > 1.0f && WeaponEspInfo[i].pOutY > 1.0f && (float)WeaponEspInfo[i].distance > 1.0f)
@@ -202,7 +209,7 @@ HRESULT APIENTRY Present_hook(IDirect3DDevice9* pDevice, const RECT *pSourceRect
 		DOUBLE fClosestPos = 99999;
 
 		for (unsigned int i = 0; i < WeaponEspInfo.size(); i++)
-		{	
+		{
 			//aimfov
 			float radiusx = (aimfov*5.0f) * (ScreenCX / 100.0f);
 			float radiusy = (aimfov*5.0f) * (ScreenCY / 100.0f);
@@ -265,7 +272,7 @@ HRESULT APIENTRY Present_hook(IDirect3DDevice9* pDevice, const RECT *pSourceRect
 		}
 	}
 
-	/*
+	
 	//draw logger
 	if (Font)
 	{
@@ -277,7 +284,7 @@ HRESULT APIENTRY Present_hook(IDirect3DDevice9* pDevice, const RECT *pSourceRect
 	DrawString(Font, 220, 110, D3DCOLOR_ARGB(255, 255, 255, 255), "hold P to +");
 	DrawString(Font, 220, 120, D3DCOLOR_ARGB(255, 255, 255, 255), "hold O to -");
 	}
-	*/
+	
 	return Present_orig(pDevice, pSourceRect, pDestRect, hDestWindowOverride, pDirtyRegion);
 }
 
@@ -285,13 +292,9 @@ HRESULT APIENTRY Present_hook(IDirect3DDevice9* pDevice, const RECT *pSourceRect
 
 HRESULT APIENTRY EndScene_hook(IDirect3DDevice9* pDevice)
 {
-	//if (ShowMenu)
-		//draw background
-		//DrawBox2(pDevice, 71.0f, 86.0f, 200.0f, 160.0f, D3DCOLOR_ARGB(1, 30, 200, 200));//180 = up/down, 200 = left/right
-
 	if (Font)
 		DrawMenu(pDevice);
-	
+
 	return EndScene_orig(pDevice);
 }
 
@@ -311,6 +314,41 @@ HRESULT APIENTRY Reset_hook(IDirect3DDevice9* pDevice, D3DPRESENT_PARAMETERS *pP
 	}
 
 	return ResetReturn;
+}
+
+//==========================================================================================================================
+
+#undef UNICODE
+#include <windows.h>
+#include "detours.h"
+#include <fstream>
+#include <string>
+#include <direct.h>
+#include <strsafe.h>
+
+HANDLE(WINAPI * Real_CreateFile) (
+	LPCWSTR lpFileName,
+	DWORD dwDesiredAccess,
+	DWORD dwShareMode,
+	LPSECURITY_ATTRIBUTES lpSecurityAttributes,
+	DWORD dwCreationDisposition,
+	DWORD dwFlagsAndAttributes,
+	HANDLE hTemplateFile) = CreateFileW;
+
+HANDLE WINAPI Routed_CreateFile(LPCWSTR lpFileName, DWORD dwDesiredAccess, DWORD dwShareMode, LPSECURITY_ATTRIBUTES lpSecurityAttributes, DWORD dwCreationDisposition, DWORD dwFlagsAndAttributes, HANDLE hTemplateFile)
+{
+	char buffer[500];
+	wcstombs(buffer, lpFileName, 500);
+	if(strcmp(buffer + strlen(buffer) - 4, ".jpg") == 0)
+	{
+		if(screenshot_taken==false)
+		{
+			//wallhack = 0; //too late
+			Log("buffer == %s", buffer);//find gm_complaint_x.jpg
+			screenshot_taken = true;
+		}
+	}
+	return Real_CreateFile(lpFileName, dwDesiredAccess, dwShareMode, lpSecurityAttributes, dwCreationDisposition, dwFlagsAndAttributes, hTemplateFile);
 }
 
 //==========================================================================================================================
@@ -371,7 +409,7 @@ DWORD WINAPI RosD3D(__in LPVOID lpParameter)
 
 	//for(int i = 0; i < 95; i++)
 	//{
-	//Log("[DirectX] vtable[%i]: %x, pointer at %x", i, dVtable[i], &dVtable[i]);
+			//Log("[DirectX] vtable[%i]: %x, pointer at %x", i, dVtable[i], &dVtable[i]);
 	//}
 
 	// Detour functions x86 & x64
@@ -387,9 +425,9 @@ DWORD WINAPI RosD3D(__in LPVOID lpParameter)
 	if (MH_CreateHook((DWORD_PTR*)dVtable[16], &Reset_hook, reinterpret_cast<void**>(&Reset_orig)) != MH_OK) { return 1; }
 	if (MH_EnableHook((DWORD_PTR*)dVtable[16]) != MH_OK) { return 1; }
 
-	HMODULE mod = LoadLibrary(TEXT("Gdi32.dll"));
-	void* ptr = GetProcAddress(mod, "BitBlt");
-	MH_CreateHook(ptr, hkBitBlt, reinterpret_cast<void**>(&oBitBlt));
+	HMODULE mod = LoadLibrary(TEXT("Kernel32.dll"));
+	void* ptr = GetProcAddress(mod, "CreateFileW");
+	MH_CreateHook(ptr, Routed_CreateFile, reinterpret_cast<void**>(&Real_CreateFile));
 	MH_EnableHook(ptr);
 
 	//Log("[Detours] Detours attached\n");
@@ -403,17 +441,20 @@ DWORD WINAPI RosD3D(__in LPVOID lpParameter)
 
 //==========================================================================================================================
 
-BOOL WINAPI DllMain(HMODULE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
+BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserved)
 {
-	switch (fdwReason)
+	switch (ul_reason_for_call)
 	{
-	case DLL_PROCESS_ATTACH: // A process is loading the DLL.
-		Hand = hinstDLL;
-		DisableThreadLibraryCalls(hinstDLL); // disable unwanted thread notifications to reduce overhead
+	case DLL_PROCESS_ATTACH:
+		Hand = hModule;
+		DisableThreadLibraryCalls(hModule); //disable unwanted thread notifications to reduce overhead
 		CreateThread(0, 0, RosD3D, 0, 0, 0); //init our hooks
-		break;
 
-	case DLL_PROCESS_DETACH: // A process unloads the DLL.
+		break;
+	case DLL_PROCESS_DETACH:
+		break;
+	case DLL_THREAD_ATTACH:
+	case DLL_THREAD_DETACH:
 		break;
 	}
 	return TRUE;

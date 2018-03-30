@@ -36,13 +36,14 @@ float ScreenCY;
 
 LPD3DXFONT Font; //font
 
+IDirect3DPixelShader9* pShader;
+UINT pSize;
+
 IDirect3DVertexShader9* vShader;
 UINT vSize;
 
 bool InitOnce = true;
 LPDIRECT3DTEXTURE9 Red, Green, Blue, Yellow;
-
-IDirect3DBaseTexture9 *Texture;
 
 int countnum = 0;
 
@@ -52,7 +53,7 @@ int countnum = 0;
 
 //visuals
 int wallhack = 1;				//wallhack
-int esp = 2;					//esp
+int esp = 10;					//esp
 int nograss = 1;				//nograss
 
 //aimbot settings
@@ -61,13 +62,16 @@ int aimkey = 2;
 DWORD Daimkey = VK_RBUTTON;		//aimkey
 int aimsens = 1;				//aim sensitivity, makes aim smoother
 int aimfov = 3;					//aim field of view in % 
-int aimheight = 2;				//aim height value, high value aims higher
+int aimheight = 3;				//aim height value, high value aims higher
+
 //autoshoot settings
-int autoshoot = 1;
+int autoshoot = 0;
 unsigned int asdelay = 49;		//use x-999 (shoot for xx millisecs, looks more legit)
 bool IsPressed = false;			//
 DWORD astime = timeGetTime();	//autoshoot timer
 
+bool screenshot_taken = false;
+DWORD screen_pause = timeGetTime(); 
 //==========================================================================================================================
 
 // getdir & log
@@ -166,7 +170,6 @@ void DrawBox(IDirect3DDevice9 *pDevice, float x, float y, float w, float h, D3DC
 	pDevice->SetFVF(D3DFVF_XYZRHW | D3DFVF_DIFFUSE);
 	pDevice->SetRenderState(D3DRS_ALPHABLENDENABLE, true);
 	pDevice->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA);
-	//pDevice->SetRenderState(D3DRS_ZENABLE, FALSE);
 	pDevice->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);
 	pDevice->DrawPrimitiveUP(D3DPT_TRIANGLESTRIP, 2, V, sizeof(Vertex));
 }
