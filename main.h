@@ -52,6 +52,7 @@ int countnum = 0;
 int wallhack = 1;				//wallhack
 int esp = 10;					//esp
 int nograss = 1;				//nograss
+int nofog = 1;					//nofog
 
 //aimbot settings
 int aimbot = 1;
@@ -97,6 +98,57 @@ void Log(const char *fmt, ...)
 }
 
 //==========================================================================================================================
+
+/*
+VOID CAMERA2D::ZoomIn(FLOAT const& MouseX, FLOAT const& MouseY) {
+// Get the setting of the current view port.
+D3DVIEWPORT9 ViewPort;
+this->Direct3DDevice->GetViewport(&ViewPort);
+
+// Convert the screen coordinates of the mouse to world space coordinates.
+D3DXVECTOR3 VectorOne;
+D3DXVECTOR3 VectorTwo;
+
+D3DXVec3Unproject(&VectorOne, &D3DXVECTOR3(MouseX, MouseY, 0.0f), &ViewPort,
+&this->ProjectionMatrix, &this->ViewMatrix, &WorldMatrix);
+D3DXVec3Unproject(&VectorTwo, &D3DXVECTOR3(MouseX, MouseY, 1.0f), &ViewPort,
+&this->ProjectionMatrix, &this->ViewMatrix, &WorldMatrix);
+
+// Calculate the resulting vector components.
+float WorldZ = 0.0f;
+float WorldX = ((WorldZ - VectorOne.z) * (VectorTwo.x - VectorOne.x)) /
+(VectorTwo.z - VectorOne.z) + VectorOne.x;
+float WorldY = ((WorldZ - VectorOne.z) * (VectorTwo.y - VectorOne.y)) /
+(VectorTwo.z - VectorOne.z) + VectorOne.y;
+
+// Move the camera into the screen.
+this->Position.z = this->Position.z * 0.9f;
+D3DXMatrixLookAtLH(&this->ViewMatrix, &this->Position, &this->Target, &this->UpDirection);
+
+// Calculate the world space vector again based on the new view matrix,
+D3DXVec3Unproject(&VectorOne, &D3DXVECTOR3(MouseX, MouseY, 0.0f), &ViewPort,
+&this->ProjectionMatrix, &this->ViewMatrix, &WorldMatrix);
+D3DXVec3Unproject(&VectorTwo, &D3DXVECTOR3(MouseX, MouseY, 1.0f), &ViewPort,
+&this->ProjectionMatrix, &this->ViewMatrix, &WorldMatrix);
+
+// Calculate the resulting vector components.
+float WorldZ2 = 0.0f;
+float WorldX2 = ((WorldZ2 - VectorOne.z) * (VectorTwo.x - VectorOne.x)) /
+(VectorTwo.z - VectorOne.z) + VectorOne.x;
+float WorldY2 = ((WorldZ2 - VectorOne.z) * (VectorTwo.y - VectorOne.y)) /
+(VectorTwo.z - VectorOne.z) + VectorOne.y;
+
+// Create a temporary translation matrix for calculating the origin offset.
+D3DXMATRIX TranslationMatrix;
+D3DXMatrixIdentity(&TranslationMatrix);
+
+// Calculate the origin offset.
+D3DXMatrixTranslation(&TranslationMatrix, WorldX2 - WorldX, WorldY2 - WorldY, 0.0f);
+
+// At the offset to the cameras world matrix.
+this->WorldMatrix = this->WorldMatrix * TranslationMatrix;
+}
+*/
 
 // Parameters:
 //
@@ -291,6 +343,7 @@ void SaveCfg()
 	fout << "aimheight " << aimheight << endl;
 	fout << "autoshoot " << autoshoot << endl;
 	fout << "nograss " << nograss << endl;
+	fout << "nofog " << nofog << endl;
 	fout.close();
 }
 
@@ -308,6 +361,7 @@ void LoadCfg()
 	fin >> Word >> aimheight;
 	fin >> Word >> autoshoot;
 	fin >> Word >> nograss;
+	fin >> Word >> nofog;
 	fin.close();
 }
 
@@ -450,7 +504,6 @@ char *opt_OnOff[] = { "[OFF]", "[On]" };
 char *opt_WhChams[] = { "[OFF]", "[On]", "[Color]" };
 char *opt_ZeroTen[] = { "[0]", "[1]", "[2]", "[3]", "[4]", "[5]", "[6]", "[7]", "[8]", "[9]", "[10]" };
 char *opt_Keys[] = { "[OFF]", "[Shift]", "[RMouse]", "[LMouse]", "[Ctrl]", "[Alt]", "[Space]", "[X]", "[C]" };
-char *opt_Sensitivity[] = { "[1]", "[2]", "[3]", "[4]", "[5]", "[6]", "[7]", "[8]", "[9]", "[10]", "[11]", "[12]", "[13]", "[14]", "[15]", "[16]", "[17]", "[18]", "[19]", "[20]" };
 char *opt_aimfov[] = { "[0]", "[5%]", "[10%]", "[15%]", "[20%]", "[25%]", "[30%]", "[35%]", "[40%]", "[45%]" };
 char *opt_autoshoot[] = { "[OFF]", "[OnKeyDown]" };
 
@@ -478,17 +531,18 @@ void DrawMenu(LPDIRECT3DDEVICE9 pDevice)
 		AddItem(pDevice, " Esp", esp, opt_ZeroTen, 10);
 		AddItem(pDevice, " Aimbot", aimbot, opt_OnOff, 1);
 		AddItem(pDevice, " Aimkey", aimkey, opt_Keys, 8);
-		AddItem(pDevice, " Aimsens", aimsens, opt_Sensitivity, 19);
+		AddItem(pDevice, " Aimsens", aimsens, opt_ZeroTen, 10);
 		AddItem(pDevice, " Aimfov", aimfov, opt_aimfov, 9);
 		AddItem(pDevice, " Aimheight", aimheight, opt_ZeroTen, 5);
 		AddItem(pDevice, " Autoshoot", autoshoot, opt_autoshoot, 1);
 		AddItem(pDevice, " No Grass", nograss, opt_OnOff, 1);
+		AddItem(pDevice, " No Fog", nofog, opt_OnOff, 1);
 
 		if (menuselect >= Current)
 			menuselect = 1;
 
 		if (menuselect < 1)
-			menuselect = 9;//Current;
+			menuselect = 10;//Current;
 	}
 }
 

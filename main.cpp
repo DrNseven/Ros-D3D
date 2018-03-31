@@ -1,5 +1,5 @@
 /*
-* Ros D3D 0.8d by n7
+* Ros D3D 0.9 by n7
 How to compile:
 - compile with visual studio community 2017 (..\Microsoft Visual Studio\2017\Community\Common7\IDE\devenv.exe)
 - select Release x86
@@ -82,7 +82,6 @@ HRESULT APIENTRY SetTexture_hook(LPDIRECT3DDEVICE9 pDevice, DWORD Sampler, IDire
 		if ((vSize == 2300 || vSize == 900 ||
 			vSize == 1952 || vSize == 640) || (Stride == 36 && vSize == 1436))
 		{
-			pDevice->SetRenderState(D3DRS_FOGENABLE, false);//test
 			if (wallhack == 2 && vSize != 1436)
 			{
 				float sColor[4] = { 0.0f, 1.0f, 0.0f, 1.0f };//green
@@ -122,18 +121,46 @@ HRESULT APIENTRY SetTexture_hook(LPDIRECT3DDEVICE9 pDevice, DWORD Sampler, IDire
 		}
 	}
 
+	if (nofog == 1)
+	{
+		//if (Stride != 44)//buggy
+		//{
+			//D3DXMATRIX matWorld;
+			//D3DXMatrixScaling(&matWorld, 0.0f, 0.0f, 0.0f);
+			//pDevice->SetVertexShaderConstantF(5, matWorld, 1);//World
+		//}
+
+		if (vSize == 2300 || vSize == 1952)
+		{
+			D3DXMATRIX matLegs;
+			D3DXMatrixScaling(&matLegs, 0.0f, 0.0f, 0.0f);
+			pDevice->SetVertexShaderConstantF(20, matLegs, 1);//legs
+
+			D3DXMATRIX matChest;
+			D3DXMatrixScaling(&matChest, 0.0f, 0.0f, 0.0f);
+			pDevice->SetVertexShaderConstantF(25, matChest, 1);//chest
+
+			//D3DXMATRIX matChestt;
+			//D3DXMatrixScaling(&matChestt, 0.0f, 0.0f, 0.0f);
+			//pDevice->SetVertexShaderConstantF(countnum, matChestt, 1);//
+		}
+	}
+
+	/*
 	//logger
-	//if (GetAsyncKeyState('O') & 1) //-
-	//countnum--;
-	//if (GetAsyncKeyState('P') & 1) //+
-	//countnum++;
-	//if (countnum == pSize / 100|| countnum == vSize / 100)
-	//if (GetAsyncKeyState('I') & 1) //log
-	//Log("Stride == %d && pSize == %d && vSize == %d", Stride, pSize, vSize);
-	//if (countnum == pSize / 100 || countnum == vSize / 100)
+	if (GetAsyncKeyState('O') & 1) //-
+	countnum--;
+	if (GetAsyncKeyState('P') & 1) //+
+	countnum++;
+	if (countnum == Stride|| countnum == vSize / 100)
+	if (GetAsyncKeyState('I') & 1) //log
+	Log("Stride == %d && vSize == %d", Stride, vSize);
+	if (countnum == Stride || countnum == vSize / 100)
+	{
 	//return D3D_OK; //delete texture
 	//pDevice->SetRenderState(D3DRS_FILLMODE, D3DFILL_POINT);
-
+	}
+	*/
 	return SetTexture_orig(pDevice, Sampler, pTexture);
 }
 
@@ -300,7 +327,7 @@ HRESULT APIENTRY Present_hook(IDirect3DDevice9* pDevice, const RECT *pSourceRect
 
 	/*
 	//draw logger
-	if (Font)
+	if (Font && countnum != 0)
 	{
 	char szString[255];
 	sprintf_s(szString, "countnum = %d", countnum);
@@ -359,12 +386,12 @@ HANDLE WINAPI Routed_CreateFile(LPCWSTR lpFileName, DWORD dwDesiredAccess, DWORD
 {
 	char buffer[500];
 	wcstombs(buffer, lpFileName, 500);
-	if (strcmp(buffer + strlen(buffer) - 4, ".jpg") == 0)
+	if (strcmp(buffer + strlen(buffer) - 4, ".jpg") == 0)//find gm_complaint_x.jpg
 	{
 		if (screenshot_taken == false)
 		{
 			//wallhack = 0; //too late
-			Log("buffer == %s", buffer);//find gm_complaint_x.jpg
+			Log("buffer == %s", buffer);//log jpg
 			screenshot_taken = true;
 		}
 	}
