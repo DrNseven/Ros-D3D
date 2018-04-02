@@ -99,57 +99,6 @@ void Log(const char *fmt, ...)
 
 //==========================================================================================================================
 
-/*
-VOID CAMERA2D::ZoomIn(FLOAT const& MouseX, FLOAT const& MouseY) {
-// Get the setting of the current view port.
-D3DVIEWPORT9 ViewPort;
-this->Direct3DDevice->GetViewport(&ViewPort);
-
-// Convert the screen coordinates of the mouse to world space coordinates.
-D3DXVECTOR3 VectorOne;
-D3DXVECTOR3 VectorTwo;
-
-D3DXVec3Unproject(&VectorOne, &D3DXVECTOR3(MouseX, MouseY, 0.0f), &ViewPort,
-&this->ProjectionMatrix, &this->ViewMatrix, &WorldMatrix);
-D3DXVec3Unproject(&VectorTwo, &D3DXVECTOR3(MouseX, MouseY, 1.0f), &ViewPort,
-&this->ProjectionMatrix, &this->ViewMatrix, &WorldMatrix);
-
-// Calculate the resulting vector components.
-float WorldZ = 0.0f;
-float WorldX = ((WorldZ - VectorOne.z) * (VectorTwo.x - VectorOne.x)) /
-(VectorTwo.z - VectorOne.z) + VectorOne.x;
-float WorldY = ((WorldZ - VectorOne.z) * (VectorTwo.y - VectorOne.y)) /
-(VectorTwo.z - VectorOne.z) + VectorOne.y;
-
-// Move the camera into the screen.
-this->Position.z = this->Position.z * 0.9f;
-D3DXMatrixLookAtLH(&this->ViewMatrix, &this->Position, &this->Target, &this->UpDirection);
-
-// Calculate the world space vector again based on the new view matrix,
-D3DXVec3Unproject(&VectorOne, &D3DXVECTOR3(MouseX, MouseY, 0.0f), &ViewPort,
-&this->ProjectionMatrix, &this->ViewMatrix, &WorldMatrix);
-D3DXVec3Unproject(&VectorTwo, &D3DXVECTOR3(MouseX, MouseY, 1.0f), &ViewPort,
-&this->ProjectionMatrix, &this->ViewMatrix, &WorldMatrix);
-
-// Calculate the resulting vector components.
-float WorldZ2 = 0.0f;
-float WorldX2 = ((WorldZ2 - VectorOne.z) * (VectorTwo.x - VectorOne.x)) /
-(VectorTwo.z - VectorOne.z) + VectorOne.x;
-float WorldY2 = ((WorldZ2 - VectorOne.z) * (VectorTwo.y - VectorOne.y)) /
-(VectorTwo.z - VectorOne.z) + VectorOne.y;
-
-// Create a temporary translation matrix for calculating the origin offset.
-D3DXMATRIX TranslationMatrix;
-D3DXMatrixIdentity(&TranslationMatrix);
-
-// Calculate the origin offset.
-D3DXMatrixTranslation(&TranslationMatrix, WorldX2 - WorldX, WorldY2 - WorldY, 0.0f);
-
-// At the offset to the cameras world matrix.
-this->WorldMatrix = this->WorldMatrix * TranslationMatrix;
-}
-*/
-
 // Parameters:
 //
 //   float4 CameraPos;
@@ -246,6 +195,24 @@ void DrawBox(IDirect3DDevice9 *pDevice, float x, float y, float w, float h, D3DC
 	pDevice->SetPixelShader(oldsShader);
 }
 
+void DrawP(LPDIRECT3DDEVICE9 Device, int baseX, int baseY, int baseW, int baseH, D3DCOLOR Cor)
+{
+	D3DRECT BarRect = { baseX, baseY, baseX + baseW, baseY + baseH };
+	Device->Clear(1, &BarRect, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER, Cor, 0, 0);
+}
+
+void DrawCornerBox(LPDIRECT3DDEVICE9 Device, int x, int y, int w, int h, int borderPx, DWORD borderColor)
+{
+	DrawP(Device, x - (w / 2), (y - h + borderPx), w / 3, borderPx, borderColor); //bottom 
+	DrawP(Device, x - (w / 2) + w - w / 3, (y - h + borderPx), w / 3, borderPx, borderColor); //bottom 
+	DrawP(Device, x - (w / 2), (y - h + borderPx), borderPx, w / 3, borderColor); //left 
+	DrawP(Device, x - (w / 2), (y - h + borderPx) + h - w / 3, borderPx, w / 3, borderColor); //left 
+	DrawP(Device, x - (w / 2), y, w / 3, borderPx, borderColor); //top 
+	DrawP(Device, x - (w / 2) + w - w / 3, y, w / 3, borderPx, borderColor); //top 
+	DrawP(Device, (x + w - borderPx) - (w / 2), (y - h + borderPx), borderPx, w / 3, borderColor);//right 
+	DrawP(Device, (x + w - borderPx) - (w / 2), (y - h + borderPx) + h - w / 3, borderPx, w / 3, borderColor);//right 
+}
+
 HRESULT DrawString(LPD3DXFONT Font, INT X, INT Y, DWORD dColor, CONST PCHAR cString, ...)
 {
 	HRESULT hRet;
@@ -266,6 +233,31 @@ HRESULT DrawString(LPD3DXFONT Font, INT X, INT Y, DWORD dColor, CONST PCHAR cStr
 	{
 		Font->DrawTextA(NULL, buf, -1, &rc[0], DT_NOCLIP, 0xFF000000);
 		hRet = Font->DrawTextA(NULL, buf, -1, &rc[1], DT_NOCLIP, dColor);
+	}
+
+	return hRet;
+}
+
+HRESULT DrawCenteredString(LPD3DXFONT Font, INT X, INT Y, DWORD dColor, CONST PCHAR cString, ...)
+{
+	HRESULT hRet;
+
+	CHAR buf[512] = { NULL };
+	va_list ArgumentList;
+	va_start(ArgumentList, cString);
+	_vsnprintf_s(buf, sizeof(buf), sizeof(buf) - strlen(buf), cString, ArgumentList);
+	va_end(ArgumentList);
+
+	RECT rc[2];
+	SetRect(&rc[0], X, Y, X, 0);
+	SetRect(&rc[1], X, Y, X + 2, 2);
+
+	hRet = D3D_OK;
+
+	if (SUCCEEDED(hRet))
+	{
+		Font->DrawTextA(NULL, buf, -1, &rc[0], DT_NOCLIP | DT_CENTER, 0xFF000000);
+		hRet = Font->DrawTextA(NULL, buf, -1, &rc[1], DT_NOCLIP | DT_CENTER, dColor);
 	}
 
 	return hRet;
@@ -301,7 +293,7 @@ public:
 };
 
 IDirect3DPixelShader9* oldlShader;
-void DrawLine(IDirect3DDevice9* pDevice, float X, float Y, float X2, float Y2, float Width, D3DCOLOR Color)
+void DrawLine(IDirect3DDevice9* pDevice, float X, float Y, float X2, float Y2, float Width, D3DCOLOR Color, bool AntiAliased)
 {
 	D3DTLVERTEX qV[2] = {
 		{ (float)X , (float)Y, 0.0f, 1.0f, Color },
@@ -319,9 +311,11 @@ void DrawLine(IDirect3DDevice9* pDevice, float X, float Y, float X2, float Y2, f
 
 	pDevice->SetRenderState(D3DRS_ZENABLE, FALSE);
 	pDevice->SetRenderState(D3DRS_STENCILENABLE, FALSE);
+	pDevice->SetRenderState(D3DRS_ANTIALIASEDLINEENABLE, (AntiAliased ? TRUE : FALSE));
 
 	pDevice->DrawPrimitiveUP(D3DPT_LINELIST, 2, qV, sizeof(D3DTLVERTEX));
 
+	pDevice->SetRenderState(D3DRS_ANTIALIASEDLINEENABLE, FALSE);
 	pDevice->SetRenderState(D3DRS_ZENABLE, TRUE);
 	pDevice->SetRenderState(D3DRS_STENCILENABLE, TRUE);
 
@@ -412,12 +406,6 @@ void lWriteText(int x, int y, DWORD color, char *text)
 	SetRect(&rect, x, y, x, y);
 	Font->DrawText(0, text, -1, &rect, DT_NOCLIP | DT_RIGHT, color);
 }
-
-//void FillRGB(LPDIRECT3DDEVICE9 pDevice, int x, int y, int w, int h, D3DCOLOR color)
-//{
-	//D3DRECT rec = { x, y, x + w, y + h };
-	//pDevice->Clear(1, &rec, D3DCLEAR_TARGET, color, 0, 0);
-//}
 
 void Category(LPDIRECT3DDEVICE9 pDevice, char *text)
 {

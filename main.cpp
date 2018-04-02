@@ -1,5 +1,5 @@
 /*
-* Ros D3D 0.9 by n7
+* Ros D3D 0.9b by n7
 How to compile:
 - compile with visual studio community 2017 (..\Microsoft Visual Studio\2017\Community\Common7\IDE\devenv.exe)
 - select Release x86
@@ -90,11 +90,11 @@ HRESULT APIENTRY SetTexture_hook(LPDIRECT3DDEVICE9 pDevice, DWORD Sampler, IDire
 				//SetTexture_orig(pDevice, 1, Red);
 			}
 
-			//if (wallhack == 2 && Stride == 36 && vSize == 1436)//weapons on ground
-			//{
-				//float sColorr[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
-				//pDevice->SetPixelShaderConstantF(0, sColorr, 4);
-			//}
+			if (wallhack == 2 && Stride == 36 && vSize == 1436)//weapons on ground
+			{
+				float sColorr[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
+				pDevice->SetPixelShaderConstantF(0, sColorr, 4);
+			}
 
 			float bias = 1000.0f;
 			float bias_float = static_cast<float>(-bias);
@@ -123,13 +123,6 @@ HRESULT APIENTRY SetTexture_hook(LPDIRECT3DDEVICE9 pDevice, DWORD Sampler, IDire
 
 	if (nofog == 1)
 	{
-		//if (Stride != 44)//buggy
-		//{
-			//D3DXMATRIX matWorld;
-			//D3DXMatrixScaling(&matWorld, 0.0f, 0.0f, 0.0f);
-			//pDevice->SetVertexShaderConstantF(5, matWorld, 1);//World
-		//}
-
 		if (vSize == 2300 || vSize == 1952)
 		{
 			D3DXMATRIX matLegs;
@@ -139,10 +132,6 @@ HRESULT APIENTRY SetTexture_hook(LPDIRECT3DDEVICE9 pDevice, DWORD Sampler, IDire
 			D3DXMATRIX matChest;
 			D3DXMatrixScaling(&matChest, 0.0f, 0.0f, 0.0f);
 			pDevice->SetVertexShaderConstantF(25, matChest, 1);//chest
-
-			//D3DXMATRIX matChestt;
-			//D3DXMatrixScaling(&matChestt, 0.0f, 0.0f, 0.0f);
-			//pDevice->SetVertexShaderConstantF(countnum, matChestt, 1);//
 		}
 	}
 
@@ -201,9 +190,10 @@ HRESULT APIENTRY Present_hook(IDirect3DDevice9* pDevice, const RECT *pSourceRect
 	if (Font)
 		DrawMenu(pDevice);
 
+	//
 	if (screenshot_taken)
 	{
-		DrawString(Font, ScreenCX - 20.0f, ScreenCY - 20.0f, D3DCOLOR_ARGB(255, 255, 255, 255), "Screenshot Taken (gm_complaint)");
+		DrawCenteredString(Font, ScreenCX, ScreenCY-20.0f, D3DCOLOR_ARGB(255, 255, 255, 255), "Screenshot Taken (gm_complaint)");
 
 		if (timeGetTime() - screen_pause >= 299)
 		{
@@ -211,7 +201,6 @@ HRESULT APIENTRY Present_hook(IDirect3DDevice9* pDevice, const RECT *pSourceRect
 			screen_pause = timeGetTime();
 		}
 	}
-
 
 	//Shift|RMouse|LMouse|Ctrl|Alt|Space|X|C
 	if (aimkey == 0) Daimkey = 0;
@@ -231,22 +220,26 @@ HRESULT APIENTRY Present_hook(IDirect3DDevice9* pDevice, const RECT *pSourceRect
 		for (unsigned int i = 0; i < WeaponEspInfo.size(); i++)
 		{
 			//box esp
-			if (WeaponEspInfo[i].pOutX > 1.0f && WeaponEspInfo[i].pOutY > 1.0f && (float)WeaponEspInfo[i].distance > 40.0f && (float)WeaponEspInfo[i].distance < 1000.0f)
-				DrawBox(pDevice, (int)WeaponEspInfo[i].pOutX, (int)WeaponEspInfo[i].pOutY - 20.0f, 12.0f, 12.0f, D3DCOLOR_ARGB(12, 30, 200, 200));//25, 18, 12
-			if (WeaponEspInfo[i].pOutX > 1.0f && WeaponEspInfo[i].pOutY > 1.0f && (float)WeaponEspInfo[i].distance >= 1000.0f && (float)WeaponEspInfo[i].distance < 10000.0f)
-				DrawBox(pDevice, (int)WeaponEspInfo[i].pOutX, (int)WeaponEspInfo[i].pOutY - 20.0f, 18.0f, 12.0f, D3DCOLOR_ARGB(12, 30, 200, 200));//25, 18, 12
-			if (WeaponEspInfo[i].pOutX > 1.0f && WeaponEspInfo[i].pOutY > 1.0f && (float)WeaponEspInfo[i].distance >= 10000.0f && (float)WeaponEspInfo[i].distance < 90000.0f)
-				DrawBox(pDevice, (int)WeaponEspInfo[i].pOutX, (int)WeaponEspInfo[i].pOutY - 20.0f, 24.0f, 12.0f, D3DCOLOR_ARGB(12, 30, 200, 200));//25, 18, 12
+			if (WeaponEspInfo[i].pOutX > 1.0f && WeaponEspInfo[i].pOutY > 1.0f && (float)WeaponEspInfo[i].distance > 4.0f*10.0f)
+				DrawCornerBox(pDevice, (int)WeaponEspInfo[i].pOutX, (int)WeaponEspInfo[i].pOutY + 20, 20, 30, 1, D3DCOLOR_ARGB(255, 255, 255, 255));
+		
+			//small box for text
+			//if (WeaponEspInfo[i].pOutX > 1.0f && WeaponEspInfo[i].pOutY > 1.0f && (float)WeaponEspInfo[i].distance > 40.0f && (float)WeaponEspInfo[i].distance < 1000.0f)
+				//DrawBox(pDevice, (int)WeaponEspInfo[i].pOutX, (int)WeaponEspInfo[i].pOutY - 20.0f, 12.0f, 12.0f, D3DCOLOR_ARGB(255, 255, 255, 0));//25, 18, 12
+			//if (WeaponEspInfo[i].pOutX > 1.0f && WeaponEspInfo[i].pOutY > 1.0f && (float)WeaponEspInfo[i].distance >= 1000.0f && (float)WeaponEspInfo[i].distance < 10000.0f)
+				//DrawBox(pDevice, (int)WeaponEspInfo[i].pOutX, (int)WeaponEspInfo[i].pOutY - 20.0f, 18.0f, 12.0f, D3DCOLOR_ARGB(12, 30, 200, 200));//25, 18, 12
+			//if (WeaponEspInfo[i].pOutX > 1.0f && WeaponEspInfo[i].pOutY > 1.0f && (float)WeaponEspInfo[i].distance >= 10000.0f && (float)WeaponEspInfo[i].distance < 90000.0f)
+				//DrawBox(pDevice, (int)WeaponEspInfo[i].pOutX, (int)WeaponEspInfo[i].pOutY - 20.0f, 24.0f, 12.0f, D3DCOLOR_ARGB(12, 30, 200, 200));//25, 18, 12
 
 			//line esp
 			if (WeaponEspInfo[i].pOutX > 1.0f && WeaponEspInfo[i].pOutY > 1.0f && (float)WeaponEspInfo[i].distance > 40.0f)
-				DrawLine(pDevice, (int)WeaponEspInfo[i].pOutX, (int)WeaponEspInfo[i].pOutY, ScreenCX, ScreenCY * ((float)esp * 0.2f), 20, D3DCOLOR_ARGB(255, 255, 255, 255));//0.1up, 1.0middle, 2.0down
+				DrawLine(pDevice, (int)WeaponEspInfo[i].pOutX, (int)WeaponEspInfo[i].pOutY, ScreenCX, ScreenCY * ((float)esp * 0.2f), 20, D3DCOLOR_ARGB(255, 255, 255, 255), 0);//0.1up, 1.0middle, 2.0down
 
 			//distance esp
 			if (WeaponEspInfo[i].pOutX > 1.0f && WeaponEspInfo[i].pOutY > 1.0f && (float)WeaponEspInfo[i].distance > 2000.0f)
-				DrawString(Font, (int)WeaponEspInfo[i].pOutX, (int)WeaponEspInfo[i].pOutY - 20.0f, D3DCOLOR_ARGB(255, 255, 255, 255), "%.f", (float)WeaponEspInfo[i].distance / 10.0f);
+				DrawCenteredString(Font, (int)WeaponEspInfo[i].pOutX, (int)WeaponEspInfo[i].pOutY - 20.0f, D3DCOLOR_ARGB(255, 255, 255, 255), "%.f", (float)WeaponEspInfo[i].distance / 10.0f);
 			if (WeaponEspInfo[i].pOutX > 1.0f && WeaponEspInfo[i].pOutY > 1.0f && (float)WeaponEspInfo[i].distance > 40.0f && (float)WeaponEspInfo[i].distance <= 2000.0f)
-				DrawString(Font, (int)WeaponEspInfo[i].pOutX, (int)WeaponEspInfo[i].pOutY - 20.0f, D3DCOLOR_ARGB(255, 255, 255, 0), "%.f", (float)WeaponEspInfo[i].distance / 10.0f);
+				DrawCenteredString(Font, (int)WeaponEspInfo[i].pOutX, (int)WeaponEspInfo[i].pOutY - 20.0f, D3DCOLOR_ARGB(255, 255, 255, 0), "%.f", (float)WeaponEspInfo[i].distance / 10.0f);
 
 			//text esp
 			//if (WeaponEspInfo[i].pOutX > 1.0f && WeaponEspInfo[i].pOutY > 1.0f && (float)WeaponEspInfo[i].distance > 40.0f)
@@ -348,6 +341,11 @@ HRESULT APIENTRY EndScene_hook(IDirect3DDevice9* pDevice)
 	if (Font)
 		DrawMenu(pDevice);
 
+	if (screenshot_taken)
+	{
+		DrawCenteredString(Font, ScreenCX, ScreenCY - 21.0f, D3DCOLOR_ARGB(255, 255, 255, 255), "Screenshot Taken (gm_complaint)");
+	}
+
 	return EndScene_orig(pDevice);
 }
 
@@ -388,12 +386,9 @@ HANDLE WINAPI Routed_CreateFile(LPCWSTR lpFileName, DWORD dwDesiredAccess, DWORD
 	wcstombs(buffer, lpFileName, 500);
 	if (strcmp(buffer + strlen(buffer) - 4, ".jpg") == 0)//find gm_complaint_x.jpg
 	{
-		if (screenshot_taken == false)
-		{
-			//wallhack = 0; //too late
-			Log("buffer == %s", buffer);//log jpg
-			screenshot_taken = true;
-		}
+		screenshot_taken = true;
+		//wallhack = 0; //too late
+		Log("buffer == %s", buffer);//log jpg
 	}
 	return Real_CreateFile(lpFileName, dwDesiredAccess, dwShareMode, lpSecurityAttributes, dwCreationDisposition, dwFlagsAndAttributes, hTemplateFile);
 }
