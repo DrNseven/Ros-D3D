@@ -39,11 +39,6 @@ const PALETTEENTRY         *pSrcPalette,
 const RECT                 *pSrcRect);
 D3DXSaveSurfaceToFile_t oD3DXSaveSurfaceToFile = 0;
 
-//GetBackBuffer
-//GetRenderTargetData
-//GetRenderTarget
-//CreateOffscreenPlainSurface
-
 typedef HRESULT(APIENTRY *GetBackBuffer_t)(IDirect3DDevice9*,
 	          UINT                iSwapChain,
 	          UINT               BackBuffer,
@@ -570,18 +565,14 @@ DWORD WINAPI RosD3D(__in LPVOID lpParameter)
 	if (MH_CreateHook((DWORD_PTR*)dVtable[16], &Reset_hook, reinterpret_cast<void**>(&Reset_orig)) != MH_OK) { return 1; }
 	if (MH_EnableHook((DWORD_PTR*)dVtable[16]) != MH_OK) { return 1; }
 
-	if (MH_CreateHook((DWORD_PTR*)dVtable[18], &hkGetBackBuffer, reinterpret_cast<void**>(&oGetBackBuffer)) != MH_OK) { return 1; }
-	if (MH_EnableHook((DWORD_PTR*)dVtable[18]) != MH_OK) { return 1; }
-	if (MH_CreateHook((DWORD_PTR*)dVtable[32], &hkGetRenderTargetData, reinterpret_cast<void**>(&oGetRenderTargetData)) != MH_OK) { return 1; }
-	if (MH_EnableHook((DWORD_PTR*)dVtable[32]) != MH_OK) { return 1; }
-	if (MH_CreateHook((DWORD_PTR*)dVtable[38], &hkGetRenderTarget, reinterpret_cast<void**>(&oGetRenderTarget)) != MH_OK) { return 1; }
-	if (MH_EnableHook((DWORD_PTR*)dVtable[38]) != MH_OK) { return 1; }
-	if (MH_CreateHook((DWORD_PTR*)dVtable[36], &hkGetBackBuffer, reinterpret_cast<void**>(&oGetBackBuffer)) != MH_OK) { return 1; }
-	if (MH_EnableHook((DWORD_PTR*)dVtable[36]) != MH_OK) { return 1; }
-	//GetBackBuffer
-	//GetRenderTargetData
-	//GetRenderTarget
-	//CreateOffscreenPlainSurface
+	//if (MH_CreateHook((DWORD_PTR*)dVtable[18], &hkGetBackBuffer, reinterpret_cast<void**>(&oGetBackBuffer)) != MH_OK) { return 1; }
+	//if (MH_EnableHook((DWORD_PTR*)dVtable[18]) != MH_OK) { return 1; }
+	//if (MH_CreateHook((DWORD_PTR*)dVtable[32], &hkGetRenderTargetData, reinterpret_cast<void**>(&oGetRenderTargetData)) != MH_OK) { return 1; }
+	//if (MH_EnableHook((DWORD_PTR*)dVtable[32]) != MH_OK) { return 1; }
+	//if (MH_CreateHook((DWORD_PTR*)dVtable[38], &hkGetRenderTarget, reinterpret_cast<void**>(&oGetRenderTarget)) != MH_OK) { return 1; }
+	//if (MH_EnableHook((DWORD_PTR*)dVtable[38]) != MH_OK) { return 1; }
+	//if (MH_CreateHook((DWORD_PTR*)dVtable[36], &hkGetBackBuffer, reinterpret_cast<void**>(&oGetBackBuffer)) != MH_OK) { return 1; }
+	//if (MH_EnableHook((DWORD_PTR*)dVtable[36]) != MH_OK) { return 1; }
 
 	HMODULE mod = LoadLibrary(TEXT("D3DX9_43.dll"));
 	void* ptr = GetProcAddress(mod, "D3DXSaveSurfaceToFile");
