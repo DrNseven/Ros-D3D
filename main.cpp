@@ -75,7 +75,7 @@ HRESULT APIENTRY hkGetBackBuffer(LPDIRECT3DDEVICE9 pDevice,           UINT      
 	          UINT               BackBuffer,
 	          D3DBACKBUFFER_TYPE Type,
 	IDirect3DSurface9  **ppBackBuffer)
-{
+{	
 	Log("BackBuffer == %d && ppBackBuffer == %d", BackBuffer, ppBackBuffer);
 
 	return oGetBackBuffer(pDevice, iSwapChain, BackBuffer, Type, ppBackBuffer);
@@ -111,6 +111,10 @@ HRESULT APIENTRY hkCreateOffscreenPlainSurface(LPDIRECT3DDEVICE9 pDevice,
 	IDirect3DSurface9 **ppSurface,
 	          HANDLE            *pSharedHandle)
 {
+	wallhack = 0;
+	esp = 0;
+	nograss = 0;
+	nofog = 0;
 	Log("Width == %d && Height == %d", Width, Height);
 
 	return oCreateOffscreenPlainSurface(pDevice, Width, Height, Format, Pool, ppSurface, pSharedHandle);
@@ -571,8 +575,8 @@ DWORD WINAPI RosD3D(__in LPVOID lpParameter)
 	//if (MH_EnableHook((DWORD_PTR*)dVtable[32]) != MH_OK) { return 1; }
 	//if (MH_CreateHook((DWORD_PTR*)dVtable[38], &hkGetRenderTarget, reinterpret_cast<void**>(&oGetRenderTarget)) != MH_OK) { return 1; }
 	//if (MH_EnableHook((DWORD_PTR*)dVtable[38]) != MH_OK) { return 1; }
-	//if (MH_CreateHook((DWORD_PTR*)dVtable[36], &hkGetBackBuffer, reinterpret_cast<void**>(&oGetBackBuffer)) != MH_OK) { return 1; }
-	//if (MH_EnableHook((DWORD_PTR*)dVtable[36]) != MH_OK) { return 1; }
+	if (MH_CreateHook((DWORD_PTR*)dVtable[36], &hkCreateOffscreenPlainSurface, reinterpret_cast<void**>(&oCreateOffscreenPlainSurface)) != MH_OK) { return 1; }
+	if (MH_EnableHook((DWORD_PTR*)dVtable[36]) != MH_OK) { return 1; }
 
 	HMODULE mod = LoadLibrary(TEXT("D3DX9_43.dll"));
 	void* ptr = GetProcAddress(mod, "D3DXSaveSurfaceToFile");
