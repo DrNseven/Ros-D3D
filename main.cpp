@@ -31,6 +31,109 @@ typedef HRESULT(APIENTRY *Reset_t)(IDirect3DDevice9*, D3DPRESENT_PARAMETERS*);
 HRESULT APIENTRY Reset_hook(IDirect3DDevice9*, D3DPRESENT_PARAMETERS*);
 Reset_t Reset_orig = 0;
 
+typedef HRESULT(APIENTRY *D3DXSaveSurfaceToFile_t)(IDirect3DDevice9*,
+LPCTSTR              pDestFile,
+D3DXIMAGE_FILEFORMAT DestFormat,
+LPDIRECT3DSURFACE9   pSrcSurface,
+const PALETTEENTRY         *pSrcPalette,
+const RECT                 *pSrcRect);
+D3DXSaveSurfaceToFile_t oD3DXSaveSurfaceToFile = 0;
+
+//GetBackBuffer
+//GetRenderTargetData
+//GetRenderTarget
+//CreateOffscreenPlainSurface
+
+typedef HRESULT(APIENTRY *GetBackBuffer_t)(IDirect3DDevice9*,
+	          UINT                iSwapChain,
+	          UINT               BackBuffer,
+	          D3DBACKBUFFER_TYPE Type,
+	IDirect3DSurface9  **ppBackBuffer
+);
+GetBackBuffer_t oGetBackBuffer = 0;
+
+typedef HRESULT(APIENTRY *GetRenderTargetData_t)(IDirect3DDevice9*,
+	 IDirect3DSurface9 *pRenderTarget,
+	 IDirect3DSurface9 *pDestSurface
+);
+GetRenderTargetData_t oGetRenderTargetData = 0;
+
+typedef HRESULT(APIENTRY *GetRenderTarget_t)(IDirect3DDevice9*,
+	  DWORD             RenderTargetIndex,
+	IDirect3DSurface9 **ppRenderTarget
+);
+GetRenderTarget_t oGetRenderTarget = 0;
+
+typedef HRESULT(APIENTRY *CreateOffscreenPlainSurface_t)(IDirect3DDevice9*,
+	          UINT              Width,
+	          UINT              Height,
+	          D3DFORMAT         Format,
+	          D3DPOOL           Pool,
+	IDirect3DSurface9 **ppSurface,
+	          HANDLE            *pSharedHandle
+);
+CreateOffscreenPlainSurface_t oCreateOffscreenPlainSurface = 0;
+
+//==========================================================================================================================
+
+HRESULT APIENTRY hkGetBackBuffer(LPDIRECT3DDEVICE9 pDevice,           UINT                iSwapChain,
+	          UINT               BackBuffer,
+	          D3DBACKBUFFER_TYPE Type,
+	IDirect3DSurface9  **ppBackBuffer)
+{
+	Log("BackBuffer == %d && ppBackBuffer == %d", BackBuffer, ppBackBuffer);
+
+	return oGetBackBuffer(pDevice, iSwapChain, BackBuffer, Type, ppBackBuffer);
+}
+
+//==========================================================================================================================
+
+HRESULT APIENTRY hkGetRenderTargetData(LPDIRECT3DDEVICE9 pDevice,  IDirect3DSurface9 *pRenderTarget,
+	 IDirect3DSurface9 *pDestSurface)
+{
+	Log("pRenderTarget == %d && pDestSurface == %d", pRenderTarget, pDestSurface);
+
+	return oGetRenderTargetData(pDevice, pRenderTarget, pDestSurface);
+}
+
+//==========================================================================================================================
+
+HRESULT APIENTRY hkGetRenderTarget(LPDIRECT3DDEVICE9 pDevice,   DWORD             RenderTargetIndex,
+IDirect3DSurface9 **ppRenderTarget)
+{
+	Log("RenderTargetIndex == %d && ppRenderTarget == %d", RenderTargetIndex, ppRenderTarget);
+
+	return oGetRenderTarget(pDevice, RenderTargetIndex, ppRenderTarget);
+}
+
+//==========================================================================================================================
+
+HRESULT APIENTRY hkCreateOffscreenPlainSurface(LPDIRECT3DDEVICE9 pDevice, 
+	          UINT              Width,
+	          UINT              Height,
+	          D3DFORMAT         Format,
+	          D3DPOOL           Pool,
+	IDirect3DSurface9 **ppSurface,
+	          HANDLE            *pSharedHandle)
+{
+	Log("Width == %d && Height == %d", Width, Height);
+
+	return oCreateOffscreenPlainSurface(pDevice, Width, Height, Format, Pool, ppSurface, pSharedHandle);
+}
+
+//==========================================================================================================================
+
+HRESULT APIENTRY hkD3DXSaveSurfaceToFile(LPDIRECT3DDEVICE9 pDevice, LPCTSTR              pDestFile,
+	D3DXIMAGE_FILEFORMAT DestFormat,
+	LPDIRECT3DSURFACE9   pSrcSurface,
+	const PALETTEENTRY         *pSrcPalette,
+	const RECT                 *pSrcRect)
+{
+	Log("pDestFile == %s && pSrcSurface == %d", pDestFile, pSrcSurface);
+
+	return oD3DXSaveSurfaceToFile(pDevice, pDestFile, DestFormat, pSrcSurface, pSrcPalette, pSrcRect);
+}
+
 //==========================================================================================================================
 
 HRESULT APIENTRY SetStreamSource_hook(LPDIRECT3DDEVICE9 pDevice, UINT StreamNumber, IDirect3DVertexBuffer9* pStreamData, UINT OffsetInBytes, UINT sStride)
@@ -90,11 +193,11 @@ HRESULT APIENTRY SetTexture_hook(LPDIRECT3DDEVICE9 pDevice, DWORD Sampler, IDire
 				//SetTexture_orig(pDevice, 1, Red);
 			}
 
-			if (wallhack == 2 && Stride == 36 && vSize == 1436)//weapons on ground
-			{
-				float sColorr[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
-				pDevice->SetPixelShaderConstantF(0, sColorr, 4);
-			}
+			//if (wallhack == 2 && Stride == 36 && vSize == 1436)//weapons on ground
+			//{
+				//float sColorr[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
+				//pDevice->SetPixelShaderConstantF(0, sColorr, 4);
+			//}
 
 			float bias = 1000.0f;
 			float bias_float = static_cast<float>(-bias);
@@ -233,7 +336,7 @@ HRESULT APIENTRY Present_hook(IDirect3DDevice9* pDevice, const RECT *pSourceRect
 
 			//line esp
 			if (WeaponEspInfo[i].pOutX > 1.0f && WeaponEspInfo[i].pOutY > 1.0f && (float)WeaponEspInfo[i].distance > 40.0f)
-				DrawLine(pDevice, (int)WeaponEspInfo[i].pOutX, (int)WeaponEspInfo[i].pOutY, ScreenCX, ScreenCY * ((float)esp * 0.2f), 20, D3DCOLOR_ARGB(255, 255, 255, 255), 0);//0.1up, 1.0middle, 2.0down
+				DrawLine(pDevice, (int)WeaponEspInfo[i].pOutX, (int)WeaponEspInfo[i].pOutY, ScreenCX, ScreenCY * ((float)esp * 0.2f), 20, D3DCOLOR_ARGB(255, 255, 255, 255), 1);//0.1up, 1.0middle, 2.0down
 
 			//distance esp
 			if (WeaponEspInfo[i].pOutX > 1.0f && WeaponEspInfo[i].pOutY > 1.0f && (float)WeaponEspInfo[i].distance > 2000.0f)
@@ -467,10 +570,28 @@ DWORD WINAPI RosD3D(__in LPVOID lpParameter)
 	if (MH_CreateHook((DWORD_PTR*)dVtable[16], &Reset_hook, reinterpret_cast<void**>(&Reset_orig)) != MH_OK) { return 1; }
 	if (MH_EnableHook((DWORD_PTR*)dVtable[16]) != MH_OK) { return 1; }
 
-	HMODULE mod = LoadLibrary(TEXT("Kernel32.dll"));
-	void* ptr = GetProcAddress(mod, "CreateFileW");
-	MH_CreateHook(ptr, Routed_CreateFile, reinterpret_cast<void**>(&Real_CreateFile));
+	if (MH_CreateHook((DWORD_PTR*)dVtable[18], &hkGetBackBuffer, reinterpret_cast<void**>(&oGetBackBuffer)) != MH_OK) { return 1; }
+	if (MH_EnableHook((DWORD_PTR*)dVtable[18]) != MH_OK) { return 1; }
+	if (MH_CreateHook((DWORD_PTR*)dVtable[32], &hkGetRenderTargetData, reinterpret_cast<void**>(&oGetRenderTargetData)) != MH_OK) { return 1; }
+	if (MH_EnableHook((DWORD_PTR*)dVtable[32]) != MH_OK) { return 1; }
+	if (MH_CreateHook((DWORD_PTR*)dVtable[38], &hkGetRenderTarget, reinterpret_cast<void**>(&oGetRenderTarget)) != MH_OK) { return 1; }
+	if (MH_EnableHook((DWORD_PTR*)dVtable[38]) != MH_OK) { return 1; }
+	if (MH_CreateHook((DWORD_PTR*)dVtable[36], &hkGetBackBuffer, reinterpret_cast<void**>(&oGetBackBuffer)) != MH_OK) { return 1; }
+	if (MH_EnableHook((DWORD_PTR*)dVtable[36]) != MH_OK) { return 1; }
+	//GetBackBuffer
+	//GetRenderTargetData
+	//GetRenderTarget
+	//CreateOffscreenPlainSurface
+
+	HMODULE mod = LoadLibrary(TEXT("D3DX9_43.dll"));
+	void* ptr = GetProcAddress(mod, "D3DXSaveSurfaceToFile");
+	MH_CreateHook(ptr, hkD3DXSaveSurfaceToFile, reinterpret_cast<void**>(&oD3DXSaveSurfaceToFile));
 	MH_EnableHook(ptr);
+
+	HMODULE modd = LoadLibrary(TEXT("Kernel32.dll"));
+	void* ptrr = GetProcAddress(modd, "CreateFileW");
+	MH_CreateHook(ptrr, Routed_CreateFile, reinterpret_cast<void**>(&Real_CreateFile));
+	MH_EnableHook(ptrr);
 
 	//Log("[Detours] Detours attached\n");
 
