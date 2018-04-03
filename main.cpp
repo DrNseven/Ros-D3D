@@ -1,5 +1,5 @@
 /*
-* Ros D3D 1.0 by n7
+* Ros D3D 1.0b by n7
 How to compile:
 - compile with visual studio community 2017 (..\Microsoft Visual Studio\2017\Community\Common7\IDE\devenv.exe)
 - select Release x86
@@ -42,6 +42,12 @@ CreateOffscreenPlainSurface_t oCreateOffscreenPlainSurface = 0;
 HRESULT APIENTRY hkGetRenderTargetData(LPDIRECT3DDEVICE9 pDevice, IDirect3DSurface9 *pRenderTarget, IDirect3DSurface9 *pDestSurface)
 {
 	//called
+
+	//temp disable visuals (it is too late to do this, screens are still dirty)
+	wallhack = 0;
+	nograss = 0;
+	nofog = 0;
+
 	//Log("pRenderTarget == %d && pDestSurface == %d", pRenderTarget, pDestSurface);
 
 	return oGetRenderTargetData(pDevice, pRenderTarget, pDestSurface);
@@ -56,11 +62,14 @@ HRESULT APIENTRY hkCreateOffscreenPlainSurface(LPDIRECT3DDEVICE9 pDevice, UINT W
 	nograss = 0;
 	nofog = 0;
 
+	screenshot_taken = true;
+
 	//prevent local screenshot (is screenshot still uploaded to gm?)
 	Width = 1;
 	Height = 1;
 
-	Log("Width == %d && Height == %d && Format == %d && Pool == %d", Width, Height, Format, Pool);
+	//Log("Width == %d && Height == %d && Format == %d && Pool == %d", Width, Height, Format, Pool);
+	Log("Screenshot blocked.");
 
 	return oCreateOffscreenPlainSurface(pDevice, Width, Height, Format, Pool, ppSurface, pSharedHandle);
 }
@@ -70,7 +79,14 @@ HRESULT APIENTRY hkCreateOffscreenPlainSurface(LPDIRECT3DDEVICE9 pDevice, UINT W
 HRESULT APIENTRY SetStreamSource_hook(LPDIRECT3DDEVICE9 pDevice, UINT StreamNumber, IDirect3DVertexBuffer9* pStreamData, UINT OffsetInBytes, UINT sStride)
 {
 	if (StreamNumber == 0)
+	{
 		Stride = sStride;
+
+		if (Stride == 48 && pStreamData)
+		{
+			pStreamData->GetDesc(&vdesc);
+		}
+	}
 
 	return SetStreamSource_orig(pDevice, StreamNumber, pStreamData, OffsetInBytes, sStride);
 }
@@ -91,7 +107,7 @@ HRESULT APIENTRY SetTexture_hook(LPDIRECT3DDEVICE9 pDevice, DWORD Sampler, IDire
 		//GenerateTexture(pDevice, &Red, D3DCOLOR_ARGB(255, 255, 0, 0));
 		//GenerateTexture(pDevice, &Green, D3DCOLOR_RGBA(0, 255, 0, 255));
 		//GenerateTexture(pDevice, &Blue, D3DCOLOR_ARGB(255, 0, 0, 255));
-		//GenerateTexture(pDevice, &Yellow, D3DCOLOR_ARGB(255, 255, 255, 0));
+		GenerateTexture(pDevice, &Yellow, D3DCOLOR_ARGB(255, 255, 255, 0));
 
 		LoadCfg();
 	}
@@ -127,7 +143,7 @@ HRESULT APIENTRY SetTexture_hook(LPDIRECT3DDEVICE9 pDevice, DWORD Sampler, IDire
 	{
 		pDevice->SetRenderState(D3DRS_DEPTHBIAS, 0);
 		if ((vSize == 2300 || vSize == 900 ||
-			vSize == 1952 || vSize == 640) || (Stride == 36 && vSize == 1436))
+			vSize == 1952 || vSize == 640) || (Stride == 36 && vSize == 1436)|| (Stride == 48 && vSize == 1436))
 		{
 			if (wallhack == 2 && vSize != 1436)
 			{
@@ -149,6 +165,14 @@ HRESULT APIENTRY SetTexture_hook(LPDIRECT3DDEVICE9 pDevice, DWORD Sampler, IDire
 			pDevice->SetRenderState(D3DRS_DEPTHBIAS, *(DWORD*)&bias_float);
 		}
 	}
+
+	//if(Stride == 48 && vSize == 1436 && vdesc.Size == 2654208)
+	//{
+		//SetTexture_orig(pDevice, 0, Yellow);
+		//SetTexture_orig(pDevice, 1, Yellow);
+		//float sColorr[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
+		//pDevice->SetPixelShaderConstantF(0, sColorr, 4);
+	//}
 
 	//worldtoscreen weapons in hand
 	if (aimbot == 1 || esp > 0)
@@ -182,19 +206,26 @@ HRESULT APIENTRY SetTexture_hook(LPDIRECT3DDEVICE9 pDevice, DWORD Sampler, IDire
 		}
 	}
 
-	/*
+	
 	//logger
+	//if (GetAsyncKeyState('O') & 1)
+	//if (wallhack == 2 && Stride == 36 && vSize == 1436)//weapons on ground
+	//{
+	//float sColorr[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
+	//pDevice->SetPixelShaderConstantF(0, sColorr, 4);
+	//}
+	/*
 	if (GetAsyncKeyState('O') & 1) //-
 	countnum--;
 	if (GetAsyncKeyState('P') & 1) //+
 	countnum++;
-	if (countnum == Stride|| countnum == vSize / 100)
+	if (countnum == vdesc.Size / 100000)
 	if (GetAsyncKeyState('I') & 1) //log
-	Log("Stride == %d && vSize == %d", Stride, vSize);
-	if (countnum == Stride || countnum == vSize / 100)
+	Log("Stride == %d && vSize == %d && vdesc.Size == %d", Stride, vSize, vdesc.Size);
+	if (countnum == vdesc.Size / 100000)
 	{
-	//return D3D_OK; //delete texture
-	//pDevice->SetRenderState(D3DRS_FILLMODE, D3DFILL_POINT);
+	return D3D_OK; //delete texture
+	pDevice->SetRenderState(D3DRS_FILLMODE, D3DFILL_POINT);
 	}
 	*/
 	return SetTexture_orig(pDevice, Sampler, pTexture);
@@ -386,7 +417,6 @@ HANDLE WINAPI Routed_CreateFile(LPCWSTR lpFileName, DWORD dwDesiredAccess, DWORD
 	wcstombs(buffer, lpFileName, 500);
 	if (strcmp(buffer + strlen(buffer) - 4, ".jpg") == 0)//find gm_complaint_x.jpg
 	{	
-		screenshot_taken = true;
 		Log("buffer == %s", buffer);//log jpg
 	}
 	return Real_CreateFile(lpFileName, dwDesiredAccess, dwShareMode, lpSecurityAttributes, dwCreationDisposition, dwFlagsAndAttributes, hTemplateFile);

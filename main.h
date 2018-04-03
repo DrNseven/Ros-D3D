@@ -41,6 +41,8 @@ LPD3DXFONT Font; //font
 IDirect3DVertexShader9* vShader;
 UINT vSize;
 
+D3DVERTEXBUFFER_DESC vdesc;
+
 bool InitOnce = true;
 LPDIRECT3DTEXTURE9 Red, Green, Blue, Yellow;
 
