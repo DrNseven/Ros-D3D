@@ -60,16 +60,7 @@ HRESULT APIENTRY hkCreateOffscreenPlainSurface(LPDIRECT3DDEVICE9 pDevice, UINT W
 	Width = 1;
 	Height = 1;
 
-	//reload visuals
-	static DWORD lastTime = timeGetTime();
-	DWORD timePassed = timeGetTime() - lastTime;
-	if (timePassed>1000)
-	{
-		LoadCfg();
-		lastTime = timeGetTime();
-	}
-
-	//Log("Width == %d && Height == %d && Format == %d && Pool == %d", Width, Height, Format, Pool);
+	Log("Width == %d && Height == %d && Format == %d && Pool == %d", Width, Height, Format, Pool);
 
 	return oCreateOffscreenPlainSurface(pDevice, Width, Height, Format, Pool, ppSurface, pSharedHandle);
 }
@@ -103,6 +94,19 @@ HRESULT APIENTRY SetTexture_hook(LPDIRECT3DDEVICE9 pDevice, DWORD Sampler, IDire
 		//GenerateTexture(pDevice, &Yellow, D3DCOLOR_ARGB(255, 255, 255, 0));
 
 		LoadCfg();
+	}
+
+	//reload visuals
+	if(screenshot_taken)
+	{
+		static DWORD lastTime = timeGetTime();
+		DWORD timePassed = timeGetTime() - lastTime;
+		if (timePassed>1000)
+		{
+			screenshot_taken = false;
+			LoadCfg();
+			lastTime = timeGetTime();
+		}
 	}
 
 	//get vSize
@@ -382,6 +386,7 @@ HANDLE WINAPI Routed_CreateFile(LPCWSTR lpFileName, DWORD dwDesiredAccess, DWORD
 	wcstombs(buffer, lpFileName, 500);
 	if (strcmp(buffer + strlen(buffer) - 4, ".jpg") == 0)//find gm_complaint_x.jpg
 	{	
+		screenshot_taken = true;
 		Log("buffer == %s", buffer);//log jpg
 	}
 	return Real_CreateFile(lpFileName, dwDesiredAccess, dwShareMode, lpSecurityAttributes, dwCreationDisposition, dwFlagsAndAttributes, hTemplateFile);
