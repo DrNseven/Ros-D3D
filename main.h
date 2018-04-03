@@ -22,6 +22,8 @@
 using namespace std;
 
 #pragma warning (disable: 4244) //
+#pragma warning (disable: 4996)
+#define _CRT_SECURE_NO_DEPRECATE
 
 //==========================================================================================================================
 
@@ -67,9 +69,6 @@ int autoshoot = 0;
 unsigned int asdelay = 49;		//use x-999 (shoot for xx millisecs, looks more legit)
 bool IsPressed = false;			//
 DWORD astime = timeGetTime();	//autoshoot timer
-
-bool screenshot_taken = false;
-DWORD screen_pause = timeGetTime(); 
 //==========================================================================================================================
 
 // getdir & log

@@ -1,5 +1,5 @@
 /*
-* Ros D3D 0.9b by n7
+* Ros D3D 1.0 by n7
 How to compile:
 - compile with visual studio community 2017 (..\Microsoft Visual Studio\2017\Community\Common7\IDE\devenv.exe)
 - select Release x86
@@ -31,106 +31,47 @@ typedef HRESULT(APIENTRY *Reset_t)(IDirect3DDevice9*, D3DPRESENT_PARAMETERS*);
 HRESULT APIENTRY Reset_hook(IDirect3DDevice9*, D3DPRESENT_PARAMETERS*);
 Reset_t Reset_orig = 0;
 
-typedef HRESULT(APIENTRY *D3DXSaveSurfaceToFile_t)(IDirect3DDevice9*,
-LPCTSTR              pDestFile,
-D3DXIMAGE_FILEFORMAT DestFormat,
-LPDIRECT3DSURFACE9   pSrcSurface,
-const PALETTEENTRY         *pSrcPalette,
-const RECT                 *pSrcRect);
-D3DXSaveSurfaceToFile_t oD3DXSaveSurfaceToFile = 0;
-
-typedef HRESULT(APIENTRY *GetBackBuffer_t)(IDirect3DDevice9*,
-	          UINT                iSwapChain,
-	          UINT               BackBuffer,
-	          D3DBACKBUFFER_TYPE Type,
-	IDirect3DSurface9  **ppBackBuffer
-);
-GetBackBuffer_t oGetBackBuffer = 0;
-
-typedef HRESULT(APIENTRY *GetRenderTargetData_t)(IDirect3DDevice9*,
-	 IDirect3DSurface9 *pRenderTarget,
-	 IDirect3DSurface9 *pDestSurface
-);
+typedef HRESULT(APIENTRY *GetRenderTargetData_t)(IDirect3DDevice9*, IDirect3DSurface9 *pRenderTarget, IDirect3DSurface9 *pDestSurface);
 GetRenderTargetData_t oGetRenderTargetData = 0;
 
-typedef HRESULT(APIENTRY *GetRenderTarget_t)(IDirect3DDevice9*,
-	  DWORD             RenderTargetIndex,
-	IDirect3DSurface9 **ppRenderTarget
-);
-GetRenderTarget_t oGetRenderTarget = 0;
-
-typedef HRESULT(APIENTRY *CreateOffscreenPlainSurface_t)(IDirect3DDevice9*,
-	          UINT              Width,
-	          UINT              Height,
-	          D3DFORMAT         Format,
-	          D3DPOOL           Pool,
-	IDirect3DSurface9 **ppSurface,
-	          HANDLE            *pSharedHandle
-);
+typedef HRESULT(APIENTRY *CreateOffscreenPlainSurface_t)(IDirect3DDevice9*, UINT Width, UINT Height, D3DFORMAT Format, D3DPOOL Pool, IDirect3DSurface9 **ppSurface, HANDLE *pSharedHandle);
 CreateOffscreenPlainSurface_t oCreateOffscreenPlainSurface = 0;
 
 //==========================================================================================================================
 
-HRESULT APIENTRY hkGetBackBuffer(LPDIRECT3DDEVICE9 pDevice,           UINT                iSwapChain,
-	          UINT               BackBuffer,
-	          D3DBACKBUFFER_TYPE Type,
-	IDirect3DSurface9  **ppBackBuffer)
-{	
-	Log("BackBuffer == %d && ppBackBuffer == %d", BackBuffer, ppBackBuffer);
-
-	return oGetBackBuffer(pDevice, iSwapChain, BackBuffer, Type, ppBackBuffer);
-}
-
-//==========================================================================================================================
-
-HRESULT APIENTRY hkGetRenderTargetData(LPDIRECT3DDEVICE9 pDevice,  IDirect3DSurface9 *pRenderTarget,
-	 IDirect3DSurface9 *pDestSurface)
+HRESULT APIENTRY hkGetRenderTargetData(LPDIRECT3DDEVICE9 pDevice, IDirect3DSurface9 *pRenderTarget, IDirect3DSurface9 *pDestSurface)
 {
-	Log("pRenderTarget == %d && pDestSurface == %d", pRenderTarget, pDestSurface);
+	//called
+	//Log("pRenderTarget == %d && pDestSurface == %d", pRenderTarget, pDestSurface);
 
 	return oGetRenderTargetData(pDevice, pRenderTarget, pDestSurface);
 }
 
 //==========================================================================================================================
 
-HRESULT APIENTRY hkGetRenderTarget(LPDIRECT3DDEVICE9 pDevice,   DWORD             RenderTargetIndex,
-IDirect3DSurface9 **ppRenderTarget)
+HRESULT APIENTRY hkCreateOffscreenPlainSurface(LPDIRECT3DDEVICE9 pDevice, UINT Width, UINT Height, D3DFORMAT Format, D3DPOOL Pool, IDirect3DSurface9 **ppSurface, HANDLE *pSharedHandle)
 {
-	Log("RenderTargetIndex == %d && ppRenderTarget == %d", RenderTargetIndex, ppRenderTarget);
-
-	return oGetRenderTarget(pDevice, RenderTargetIndex, ppRenderTarget);
-}
-
-//==========================================================================================================================
-
-HRESULT APIENTRY hkCreateOffscreenPlainSurface(LPDIRECT3DDEVICE9 pDevice, 
-	          UINT              Width,
-	          UINT              Height,
-	          D3DFORMAT         Format,
-	          D3DPOOL           Pool,
-	IDirect3DSurface9 **ppSurface,
-	          HANDLE            *pSharedHandle)
-{
+	//temp disable visuals (it is too late to do this, screens are still dirty)
 	wallhack = 0;
-	esp = 0;
 	nograss = 0;
 	nofog = 0;
-	Log("Width == %d && Height == %d", Width, Height);
+
+	//prevent local screenshot (is screenshot still uploaded to gm?)
+	Width = 1;
+	Height = 1;
+
+	//reload visuals
+	static DWORD lastTime = timeGetTime();
+	DWORD timePassed = timeGetTime() - lastTime;
+	if (timePassed>1000)
+	{
+		LoadCfg();
+		lastTime = timeGetTime();
+	}
+
+	//Log("Width == %d && Height == %d && Format == %d && Pool == %d", Width, Height, Format, Pool);
 
 	return oCreateOffscreenPlainSurface(pDevice, Width, Height, Format, Pool, ppSurface, pSharedHandle);
-}
-
-//==========================================================================================================================
-
-HRESULT APIENTRY hkD3DXSaveSurfaceToFile(LPDIRECT3DDEVICE9 pDevice, LPCTSTR              pDestFile,
-	D3DXIMAGE_FILEFORMAT DestFormat,
-	LPDIRECT3DSURFACE9   pSrcSurface,
-	const PALETTEENTRY         *pSrcPalette,
-	const RECT                 *pSrcRect)
-{
-	Log("pDestFile == %s && pSrcSurface == %d", pDestFile, pSrcSurface);
-
-	return oD3DXSaveSurfaceToFile(pDevice, pDestFile, DestFormat, pSrcSurface, pSrcPalette, pSrcRect);
 }
 
 //==========================================================================================================================
@@ -156,10 +97,10 @@ HRESULT APIENTRY SetTexture_hook(LPDIRECT3DDEVICE9 pDevice, DWORD Sampler, IDire
 		ScreenCX = (float)Viewport.Width / 2.0f;
 		ScreenCY = (float)Viewport.Height / 2.0f;
 
-		GenerateTexture(pDevice, &Red, D3DCOLOR_ARGB(255, 255, 0, 0));
-		GenerateTexture(pDevice, &Green, D3DCOLOR_RGBA(0, 255, 0, 255));
-		GenerateTexture(pDevice, &Blue, D3DCOLOR_ARGB(255, 0, 0, 255));
-		GenerateTexture(pDevice, &Yellow, D3DCOLOR_ARGB(255, 255, 255, 0));
+		//GenerateTexture(pDevice, &Red, D3DCOLOR_ARGB(255, 255, 0, 0));
+		//GenerateTexture(pDevice, &Green, D3DCOLOR_RGBA(0, 255, 0, 255));
+		//GenerateTexture(pDevice, &Blue, D3DCOLOR_ARGB(255, 0, 0, 255));
+		//GenerateTexture(pDevice, &Yellow, D3DCOLOR_ARGB(255, 255, 255, 0));
 
 		LoadCfg();
 	}
@@ -267,20 +208,6 @@ HRESULT APIENTRY Present_hook(IDirect3DDevice9* pDevice, const RECT *pSourceRect
 		ScreenCY = (float)Viewport.Height / 2.0f;
 	}
 
-	/*
-	static DWORD lastTime = timeGetTime();
-	DWORD timePassed = timeGetTime() - lastTime;
-	if (timePassed>30000)
-	{	
-		//get viewport
-		pDevice->GetViewport(&Viewport);
-		ScreenCX = (float)Viewport.Width / 2.0f;
-		ScreenCY = (float)Viewport.Height / 2.0f;
-
-		lastTime = timeGetTime();
-	}
-	*/
-
 	//create font
 	if (Font == NULL)
 		D3DXCreateFont(pDevice, 14, 0, FW_BOLD, 0, FALSE, DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, DEFAULT_QUALITY, DEFAULT_PITCH | FF_DONTCARE, TEXT("Italic"), &Font);
@@ -291,18 +218,6 @@ HRESULT APIENTRY Present_hook(IDirect3DDevice9* pDevice, const RECT *pSourceRect
 
 	if (Font)
 		DrawMenu(pDevice);
-
-	//
-	if (screenshot_taken)
-	{
-		DrawCenteredString(Font, ScreenCX, ScreenCY-20.0f, D3DCOLOR_ARGB(255, 255, 255, 255), "Screenshot Taken (gm_complaint)");
-
-		if (timeGetTime() - screen_pause >= 299)
-		{
-			screenshot_taken = false;
-			screen_pause = timeGetTime();
-		}
-	}
 
 	//Shift|RMouse|LMouse|Ctrl|Alt|Space|X|C
 	if (aimkey == 0) Daimkey = 0;
@@ -324,14 +239,6 @@ HRESULT APIENTRY Present_hook(IDirect3DDevice9* pDevice, const RECT *pSourceRect
 			//box esp
 			if (WeaponEspInfo[i].pOutX > 1.0f && WeaponEspInfo[i].pOutY > 1.0f && (float)WeaponEspInfo[i].distance > 4.0f*10.0f)
 				DrawCornerBox(pDevice, (int)WeaponEspInfo[i].pOutX, (int)WeaponEspInfo[i].pOutY + 20, 20, 30, 1, D3DCOLOR_ARGB(255, 255, 255, 255));
-		
-			//small box for text
-			//if (WeaponEspInfo[i].pOutX > 1.0f && WeaponEspInfo[i].pOutY > 1.0f && (float)WeaponEspInfo[i].distance > 40.0f && (float)WeaponEspInfo[i].distance < 1000.0f)
-				//DrawBox(pDevice, (int)WeaponEspInfo[i].pOutX, (int)WeaponEspInfo[i].pOutY - 20.0f, 12.0f, 12.0f, D3DCOLOR_ARGB(255, 255, 255, 0));//25, 18, 12
-			//if (WeaponEspInfo[i].pOutX > 1.0f && WeaponEspInfo[i].pOutY > 1.0f && (float)WeaponEspInfo[i].distance >= 1000.0f && (float)WeaponEspInfo[i].distance < 10000.0f)
-				//DrawBox(pDevice, (int)WeaponEspInfo[i].pOutX, (int)WeaponEspInfo[i].pOutY - 20.0f, 18.0f, 12.0f, D3DCOLOR_ARGB(12, 30, 200, 200));//25, 18, 12
-			//if (WeaponEspInfo[i].pOutX > 1.0f && WeaponEspInfo[i].pOutY > 1.0f && (float)WeaponEspInfo[i].distance >= 10000.0f && (float)WeaponEspInfo[i].distance < 90000.0f)
-				//DrawBox(pDevice, (int)WeaponEspInfo[i].pOutX, (int)WeaponEspInfo[i].pOutY - 20.0f, 24.0f, 12.0f, D3DCOLOR_ARGB(12, 30, 200, 200));//25, 18, 12
 
 			//line esp
 			if (WeaponEspInfo[i].pOutX > 1.0f && WeaponEspInfo[i].pOutY > 1.0f && (float)WeaponEspInfo[i].distance > 40.0f)
@@ -443,11 +350,6 @@ HRESULT APIENTRY EndScene_hook(IDirect3DDevice9* pDevice)
 	if (Font)
 		DrawMenu(pDevice);
 
-	if (screenshot_taken)
-	{
-		DrawCenteredString(Font, ScreenCX, ScreenCY - 21.0f, D3DCOLOR_ARGB(255, 255, 255, 255), "Screenshot Taken (gm_complaint)");
-	}
-
 	return EndScene_orig(pDevice);
 }
 
@@ -473,23 +375,13 @@ HRESULT APIENTRY Reset_hook(IDirect3DDevice9* pDevice, D3DPRESENT_PARAMETERS *pP
 
 //==========================================================================================================================
 
-HANDLE(WINAPI * Real_CreateFile) (
-	LPCWSTR lpFileName,
-	DWORD dwDesiredAccess,
-	DWORD dwShareMode,
-	LPSECURITY_ATTRIBUTES lpSecurityAttributes,
-	DWORD dwCreationDisposition,
-	DWORD dwFlagsAndAttributes,
-	HANDLE hTemplateFile) = CreateFileW;
-
+HANDLE(WINAPI *Real_CreateFile)(LPCWSTR lpFileName,DWORD dwDesiredAccess,DWORD dwShareMode,LPSECURITY_ATTRIBUTES lpSecurityAttributes,DWORD dwCreationDisposition,DWORD dwFlagsAndAttributes,HANDLE hTemplateFile) = CreateFileW;
 HANDLE WINAPI Routed_CreateFile(LPCWSTR lpFileName, DWORD dwDesiredAccess, DWORD dwShareMode, LPSECURITY_ATTRIBUTES lpSecurityAttributes, DWORD dwCreationDisposition, DWORD dwFlagsAndAttributes, HANDLE hTemplateFile)
 {
 	char buffer[500];
 	wcstombs(buffer, lpFileName, 500);
 	if (strcmp(buffer + strlen(buffer) - 4, ".jpg") == 0)//find gm_complaint_x.jpg
-	{
-		screenshot_taken = true;
-		//wallhack = 0; //too late
+	{	
 		Log("buffer == %s", buffer);//log jpg
 	}
 	return Real_CreateFile(lpFileName, dwDesiredAccess, dwShareMode, lpSecurityAttributes, dwCreationDisposition, dwFlagsAndAttributes, hTemplateFile);
@@ -569,19 +461,10 @@ DWORD WINAPI RosD3D(__in LPVOID lpParameter)
 	if (MH_CreateHook((DWORD_PTR*)dVtable[16], &Reset_hook, reinterpret_cast<void**>(&Reset_orig)) != MH_OK) { return 1; }
 	if (MH_EnableHook((DWORD_PTR*)dVtable[16]) != MH_OK) { return 1; }
 
-	//if (MH_CreateHook((DWORD_PTR*)dVtable[18], &hkGetBackBuffer, reinterpret_cast<void**>(&oGetBackBuffer)) != MH_OK) { return 1; }
-	//if (MH_EnableHook((DWORD_PTR*)dVtable[18]) != MH_OK) { return 1; }
-	//if (MH_CreateHook((DWORD_PTR*)dVtable[32], &hkGetRenderTargetData, reinterpret_cast<void**>(&oGetRenderTargetData)) != MH_OK) { return 1; }
-	//if (MH_EnableHook((DWORD_PTR*)dVtable[32]) != MH_OK) { return 1; }
-	//if (MH_CreateHook((DWORD_PTR*)dVtable[38], &hkGetRenderTarget, reinterpret_cast<void**>(&oGetRenderTarget)) != MH_OK) { return 1; }
-	//if (MH_EnableHook((DWORD_PTR*)dVtable[38]) != MH_OK) { return 1; }
+	if (MH_CreateHook((DWORD_PTR*)dVtable[32], &hkGetRenderTargetData, reinterpret_cast<void**>(&oGetRenderTargetData)) != MH_OK) { return 1; }
+	if (MH_EnableHook((DWORD_PTR*)dVtable[32]) != MH_OK) { return 1; }
 	if (MH_CreateHook((DWORD_PTR*)dVtable[36], &hkCreateOffscreenPlainSurface, reinterpret_cast<void**>(&oCreateOffscreenPlainSurface)) != MH_OK) { return 1; }
 	if (MH_EnableHook((DWORD_PTR*)dVtable[36]) != MH_OK) { return 1; }
-
-	HMODULE mod = LoadLibrary(TEXT("D3DX9_43.dll"));
-	void* ptr = GetProcAddress(mod, "D3DXSaveSurfaceToFile");
-	MH_CreateHook(ptr, hkD3DXSaveSurfaceToFile, reinterpret_cast<void**>(&oD3DXSaveSurfaceToFile));
-	MH_EnableHook(ptr);
 
 	HMODULE modd = LoadLibrary(TEXT("Kernel32.dll"));
 	void* ptrr = GetProcAddress(modd, "CreateFileW");
