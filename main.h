@@ -499,10 +499,11 @@ char *opt_autoshoot[] = { "[OFF]", "[OnKeyDown]" };
 
 void DrawMenu(LPDIRECT3DDEVICE9 pDevice)
 {
-	if (GetAsyncKeyState(VK_INSERT) & 1)
+	static int last_tick = GetTickCount64();
+	if (GetAsyncKeyState(VK_INSERT) && GetTickCount64() - last_tick > 100)
 	{
+		last_tick = GetTickCount64();
 		ShowMenu = !ShowMenu;
-
 		//save settings
 		SaveCfg();
 	}

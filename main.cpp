@@ -1,5 +1,5 @@
 /*
-* Ros D3D 1.0b by n7
+* Ros D3D 1.0c by n7
 How to compile:
 - compile with visual studio community 2017 (..\Microsoft Visual Studio\2017\Community\Common7\IDE\devenv.exe)
 - select Release x86
@@ -44,9 +44,9 @@ HRESULT APIENTRY hkGetRenderTargetData(LPDIRECT3DDEVICE9 pDevice, IDirect3DSurfa
 	//called
 
 	//temp disable visuals (it is too late to do this, screens are still dirty)
-	wallhack = 0;
-	nograss = 0;
-	nofog = 0;
+	//wallhack = 0;
+	//nograss = 0;
+	//nofog = 0;
 
 	//Log("pRenderTarget == %d && pDestSurface == %d", pRenderTarget, pDestSurface);
 
@@ -58,11 +58,11 @@ HRESULT APIENTRY hkGetRenderTargetData(LPDIRECT3DDEVICE9 pDevice, IDirect3DSurfa
 HRESULT APIENTRY hkCreateOffscreenPlainSurface(LPDIRECT3DDEVICE9 pDevice, UINT Width, UINT Height, D3DFORMAT Format, D3DPOOL Pool, IDirect3DSurface9 **ppSurface, HANDLE *pSharedHandle)
 {
 	//temp disable visuals (it is too late to do this, screens are still dirty)
-	wallhack = 0;
-	nograss = 0;
-	nofog = 0;
+	//wallhack = 0;
+	//nograss = 0;
+	//nofog = 0;
 
-	screenshot_taken = true;
+	//screenshot_taken = true;
 
 	//prevent local screenshot (is screenshot still uploaded to gm?)
 	Width = 1;
@@ -112,6 +112,7 @@ HRESULT APIENTRY SetTexture_hook(LPDIRECT3DDEVICE9 pDevice, DWORD Sampler, IDire
 		LoadCfg();
 	}
 
+	/*
 	//reload visuals
 	if(screenshot_taken)
 	{
@@ -124,6 +125,7 @@ HRESULT APIENTRY SetTexture_hook(LPDIRECT3DDEVICE9 pDevice, DWORD Sampler, IDire
 			lastTime = timeGetTime();
 		}
 	}
+	*/
 
 	//get vSize
 	if (SUCCEEDED(pDevice->GetVertexShader(&vShader)))
