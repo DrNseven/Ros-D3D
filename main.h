@@ -511,14 +511,14 @@ void DrawMenu(LPDIRECT3DDEVICE9 pDevice)
 	if (ShowMenu)
 	{
 		static int lasttick_up = GetTickCount64();
-		if (GetAsyncKeyState(VK_UP) & 1)
+		if (GetAsyncKeyState(VK_UP) && GetTickCount64() - lasttick_up > 50)
 		{
 			lasttick_up = GetTickCount64();
 			menuselect--;
 		}
 
 		static int lasttick_down = GetTickCount64();
-		if (GetAsyncKeyState(VK_DOWN) & 1)
+		if (GetAsyncKeyState(VK_DOWN) && GetTickCount64() - lasttick_down > 50)
 		{
 			lasttick_down = GetTickCount64();
 			menuselect++;
