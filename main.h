@@ -49,6 +49,7 @@ LPDIRECT3DTEXTURE9 Red, Green, Blue, Yellow;
 int countnum = 0;
 
 bool screenshot_taken = false;
+
 //==========================================================================================================================
 
 //features
@@ -132,7 +133,7 @@ float GetDistance(float Xx, float Yy, float xX, float yY)
 
 struct WeaponEspInfo_t
 {
-	float pOutX, pOutY, distance;
+	float pOutX, pOutY, RealDistance, vSizeod;
 	float CrosshairDistance;
 };
 std::vector<WeaponEspInfo_t>WeaponEspInfo;
@@ -150,7 +151,7 @@ void AddWeapons(LPDIRECT3DDEVICE9 Device)
 	pOut.x = Viewport.X + (1.0f + pOut.x) *Viewport.Width / 2.0f;
 	pOut.y = Viewport.Y + (1.0f - pOut.y) *Viewport.Height / 2.0f;
 
-	WeaponEspInfo_t pWeaponEspInfo = { static_cast<float>(pOut.x), static_cast<float>(pOut.y), static_cast<float>(distance) };
+	WeaponEspInfo_t pWeaponEspInfo = { static_cast<float>(pOut.x), static_cast<float>(pOut.y), static_cast<float>(distance*0.1f), static_cast<float>(vSize) };
 	WeaponEspInfo.push_back(pWeaponEspInfo);
 }
 
@@ -460,14 +461,18 @@ void AddItem(LPDIRECT3DDEVICE9 pDevice, char *text, int &var, char **opt, int Ma
 
 		if (menuselect == Current)
 		{
-			if (GetAsyncKeyState(VK_RIGHT) & 1)
+			static int lasttick_right = GetTickCount64();
+			static int lasttick_left = GetTickCount64();
+			if (GetAsyncKeyState(VK_RIGHT) - lasttick_right > 75)
 			{
+				lasttick_right = GetTickCount64();
 				var++;
 				if (var > MaxValue)
 					var = 0;
 			}
-			else if (GetAsyncKeyState(VK_LEFT) & 1)
+			else if (GetAsyncKeyState(VK_LEFT) - lasttick_left > 75)
 			{
+				lasttick_left = GetTickCount64();
 				var--;
 				if (var < 0)
 					var = MaxValue;
@@ -511,14 +516,14 @@ void DrawMenu(LPDIRECT3DDEVICE9 pDevice)
 	if (ShowMenu)
 	{
 		static int lasttick_up = GetTickCount64();
-		if (GetAsyncKeyState(VK_UP) && GetTickCount64() - lasttick_up > 50)
+		if (GetAsyncKeyState(VK_UP) && GetTickCount64() - lasttick_up > 75)
 		{
 			lasttick_up = GetTickCount64();
 			menuselect--;
 		}
 
 		static int lasttick_down = GetTickCount64();
-		if (GetAsyncKeyState(VK_DOWN) && GetTickCount64() - lasttick_down > 50)
+		if (GetAsyncKeyState(VK_DOWN) && GetTickCount64() - lasttick_down > 75)
 		{
 			lasttick_down = GetTickCount64();
 			menuselect++;

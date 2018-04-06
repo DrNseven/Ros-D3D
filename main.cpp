@@ -1,5 +1,5 @@
 /*
-* Ros D3D 1.0c by n7
+* Ros D3D 1.0d by n7
 How to compile:
 - compile with visual studio community 2017 (..\Microsoft Visual Studio\2017\Community\Common7\IDE\devenv.exe)
 - select Release x86
@@ -79,14 +79,7 @@ HRESULT APIENTRY hkCreateOffscreenPlainSurface(LPDIRECT3DDEVICE9 pDevice, UINT W
 HRESULT APIENTRY SetStreamSource_hook(LPDIRECT3DDEVICE9 pDevice, UINT StreamNumber, IDirect3DVertexBuffer9* pStreamData, UINT OffsetInBytes, UINT sStride)
 {
 	if (StreamNumber == 0)
-	{
 		Stride = sStride;
-
-		if (Stride == 48 && pStreamData)
-		{
-			pStreamData->GetDesc(&vdesc);
-		}
-	}
 
 	return SetStreamSource_orig(pDevice, StreamNumber, pStreamData, OffsetInBytes, sStride);
 }
@@ -107,7 +100,7 @@ HRESULT APIENTRY SetTexture_hook(LPDIRECT3DDEVICE9 pDevice, DWORD Sampler, IDire
 		//GenerateTexture(pDevice, &Red, D3DCOLOR_ARGB(255, 255, 0, 0));
 		//GenerateTexture(pDevice, &Green, D3DCOLOR_RGBA(0, 255, 0, 255));
 		//GenerateTexture(pDevice, &Blue, D3DCOLOR_ARGB(255, 0, 0, 255));
-		GenerateTexture(pDevice, &Yellow, D3DCOLOR_ARGB(255, 255, 255, 0));
+		//GenerateTexture(pDevice, &Yellow, D3DCOLOR_ARGB(255, 255, 255, 0));
 
 		LoadCfg();
 	}
@@ -168,19 +161,10 @@ HRESULT APIENTRY SetTexture_hook(LPDIRECT3DDEVICE9 pDevice, DWORD Sampler, IDire
 		}
 	}
 
-	//if(Stride == 48 && vSize == 1436 && vdesc.Size == 2654208)
-	//{
-		//SetTexture_orig(pDevice, 0, Yellow);
-		//SetTexture_orig(pDevice, 1, Yellow);
-		//float sColorr[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
-		//pDevice->SetPixelShaderConstantF(0, sColorr, 4);
-	//}
-
 	//worldtoscreen weapons in hand
 	if (aimbot == 1 || esp > 0)
 	{
-		if (Stride == 48 || vSize == 2300 || vSize == 900 ||
-			vSize == 1952 || vSize == 640)
+		if ((Stride == 48 && vSize > 1328) || (vSize == 2300 || vSize == 1952 || vSize == 1552))//1040crap,1328crap
 			AddWeapons(pDevice);
 	}
 
@@ -188,7 +172,7 @@ HRESULT APIENTRY SetTexture_hook(LPDIRECT3DDEVICE9 pDevice, DWORD Sampler, IDire
 	if (nograss == 1)
 	{
 		pDevice->SetRenderState(D3DRS_FILLMODE, D3DFILL_SOLID);
-		if (vSize == 1660 || vSize == 1704)
+		if (vSize == 1660 || vSize == 1704)//grass
 		{
 			pDevice->SetRenderState(D3DRS_FILLMODE, D3DFILL_POINT);
 		}
@@ -196,7 +180,7 @@ HRESULT APIENTRY SetTexture_hook(LPDIRECT3DDEVICE9 pDevice, DWORD Sampler, IDire
 
 	if (nofog == 1)
 	{
-		if (vSize == 2300 || vSize == 1952)
+		if (Stride == 48 || vSize == 2300 || vSize == 1952 || vSize == 1552)
 		{
 			D3DXMATRIX matLegs;
 			D3DXMatrixScaling(&matLegs, 0.0f, 0.0f, 0.0f);
@@ -208,26 +192,21 @@ HRESULT APIENTRY SetTexture_hook(LPDIRECT3DDEVICE9 pDevice, DWORD Sampler, IDire
 		}
 	}
 
-	
-	//logger
-	//if (GetAsyncKeyState('O') & 1)
-	//if (wallhack == 2 && Stride == 36 && vSize == 1436)//weapons on ground
-	//{
-	//float sColorr[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
-	//pDevice->SetPixelShaderConstantF(0, sColorr, 4);
-	//}
 	/*
+	//logger
 	if (GetAsyncKeyState('O') & 1) //-
 	countnum--;
 	if (GetAsyncKeyState('P') & 1) //+
 	countnum++;
-	if (countnum == vdesc.Size / 100000)
+	if (countnum == vSize / 100)//vdesc.Size / 100000)
 	if (GetAsyncKeyState('I') & 1) //log
-	Log("Stride == %d && vSize == %d && vdesc.Size == %d", Stride, vSize, vdesc.Size);
-	if (countnum == vdesc.Size / 100000)
+	Log("Stride == %d && vSize == %d", Stride, vSize);
+	if (countnum == vSize / 100)//vdesc.Size / 100000)
 	{
-	return D3D_OK; //delete texture
-	pDevice->SetRenderState(D3DRS_FILLMODE, D3DFILL_POINT);
+		//SetTexture_orig(pDevice, 0, Yellow);
+		//SetTexture_orig(pDevice, 1, Yellow);
+		//return D3D_OK; //delete texture
+		//pDevice->SetRenderState(D3DRS_FILLMODE, D3DFILL_POINT);
 	}
 	*/
 	return SetTexture_orig(pDevice, Sampler, pTexture);
@@ -274,21 +253,23 @@ HRESULT APIENTRY Present_hook(IDirect3DDevice9* pDevice, const RECT *pSourceRect
 		for (unsigned int i = 0; i < WeaponEspInfo.size(); i++)
 		{
 			//box esp
-			if (WeaponEspInfo[i].pOutX > 1.0f && WeaponEspInfo[i].pOutY > 1.0f && (float)WeaponEspInfo[i].distance > 4.0f*10.0f)
+			if (WeaponEspInfo[i].pOutX > 1.0f && WeaponEspInfo[i].pOutY > 1.0f && (float)WeaponEspInfo[i].RealDistance > 4.0f)
 				DrawCornerBox(pDevice, (int)WeaponEspInfo[i].pOutX, (int)WeaponEspInfo[i].pOutY + 20, 20, 30, 1, D3DCOLOR_ARGB(255, 255, 255, 255));
 
 			//line esp
-			if (WeaponEspInfo[i].pOutX > 1.0f && WeaponEspInfo[i].pOutY > 1.0f && (float)WeaponEspInfo[i].distance > 40.0f)
+			if (WeaponEspInfo[i].pOutX > 1.0f && WeaponEspInfo[i].pOutY > 1.0f && (float)WeaponEspInfo[i].RealDistance > 4.0f)//&& (float)WeaponEspInfo[i].vSizeod == 1952)//long range weapon
 				DrawLine(pDevice, (int)WeaponEspInfo[i].pOutX, (int)WeaponEspInfo[i].pOutY, ScreenCX, ScreenCY * ((float)esp * 0.2f), 20, D3DCOLOR_ARGB(255, 255, 255, 255), 1);//0.1up, 1.0middle, 2.0down
+			//else if (WeaponEspInfo[i].pOutX > 1.0f && WeaponEspInfo[i].pOutY > 1.0f && (float)WeaponEspInfo[i].RealDistance > 4.0f && (float)WeaponEspInfo[i].vSizeod != 1952)//short/mid range weapon
+				//DrawLine(pDevice, (int)WeaponEspInfo[i].pOutX, (int)WeaponEspInfo[i].pOutY, ScreenCX, ScreenCY * ((float)esp * 0.2f), 20, D3DCOLOR_ARGB(255, 0, 255, 0), 1);//0.1up, 1.0middle, 2.0down
 
 			//distance esp
-			if (WeaponEspInfo[i].pOutX > 1.0f && WeaponEspInfo[i].pOutY > 1.0f && (float)WeaponEspInfo[i].distance > 2000.0f)
-				DrawCenteredString(Font, (int)WeaponEspInfo[i].pOutX, (int)WeaponEspInfo[i].pOutY - 20.0f, D3DCOLOR_ARGB(255, 255, 255, 255), "%.f", (float)WeaponEspInfo[i].distance / 10.0f);
-			if (WeaponEspInfo[i].pOutX > 1.0f && WeaponEspInfo[i].pOutY > 1.0f && (float)WeaponEspInfo[i].distance > 40.0f && (float)WeaponEspInfo[i].distance <= 2000.0f)
-				DrawCenteredString(Font, (int)WeaponEspInfo[i].pOutX, (int)WeaponEspInfo[i].pOutY - 20.0f, D3DCOLOR_ARGB(255, 255, 255, 0), "%.f", (float)WeaponEspInfo[i].distance / 10.0f);
+			if (WeaponEspInfo[i].pOutX > 1.0f && WeaponEspInfo[i].pOutY > 1.0f && (float)WeaponEspInfo[i].RealDistance > 200.0f)
+				DrawCenteredString(Font, (int)WeaponEspInfo[i].pOutX, (int)WeaponEspInfo[i].pOutY - 20.0f, D3DCOLOR_ARGB(255, 255, 255, 255), "%.f", (float)WeaponEspInfo[i].RealDistance);
+			else if (WeaponEspInfo[i].pOutX > 1.0f && WeaponEspInfo[i].pOutY > 1.0f && (float)WeaponEspInfo[i].RealDistance > 4.0f && (float)WeaponEspInfo[i].RealDistance <= 200.0f)
+				DrawCenteredString(Font, (int)WeaponEspInfo[i].pOutX, (int)WeaponEspInfo[i].pOutY - 20.0f, D3DCOLOR_ARGB(255, 255, 255, 0), "%.f", (float)WeaponEspInfo[i].RealDistance);
 
 			//text esp
-			//if (WeaponEspInfo[i].pOutX > 1.0f && WeaponEspInfo[i].pOutY > 1.0f && (float)WeaponEspInfo[i].distance > 40.0f)
+			//if (WeaponEspInfo[i].pOutX > 1.0f && WeaponEspInfo[i].pOutY > 1.0f && (float)WeaponEspInfo[i].distance > 4.0f)
 			//DrawString(Font, (int)WeaponEspInfo[i].pOutX, (int)WeaponEspInfo[i].pOutY, D3DCOLOR_ARGB(255, 255, 255, 255), "o");
 		}
 	}
@@ -328,7 +309,7 @@ HRESULT APIENTRY Present_hook(IDirect3DDevice9* pDevice, const RECT *pSourceRect
 
 
 		//if nearest target to crosshair
-		if (BestTarget != -1 && WeaponEspInfo[BestTarget].distance > 40.0f)
+		if (BestTarget != -1 && WeaponEspInfo[BestTarget].RealDistance > 4.0f)//do not aim at self
 		{
 			double DistX = WeaponEspInfo[BestTarget].pOutX - ScreenCX;
 			double DistY = WeaponEspInfo[BestTarget].pOutY - ScreenCY;
@@ -526,6 +507,15 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserv
 	case DLL_PROCESS_ATTACH:
 		Hand = hModule;
 		DisableThreadLibraryCalls(hModule); //disable unwanted thread notifications to reduce overhead
+		GetModuleFileNameA(hModule, dlldir, 512);
+		for (int i = (int)strlen(dlldir); i > 0; i--)
+		{
+			if (dlldir[i] == '\\')
+			{
+				dlldir[i + 1] = 0;
+				break;
+			}
+		}
 		CreateThread(0, 0, RosD3D, 0, 0, 0); //init our hooks
 
 		break;
