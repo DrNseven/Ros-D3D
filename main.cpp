@@ -1,5 +1,5 @@
 /*
-* Ros D3D 1.0d by n7
+* Ros D3D 1.1 by n7
 How to compile:
 - compile with visual studio community 2017 (..\Microsoft Visual Studio\2017\Community\Common7\IDE\devenv.exe)
 - select Release x86
@@ -23,10 +23,6 @@ typedef HRESULT(APIENTRY* Present_t) (IDirect3DDevice9*, const RECT *, const REC
 HRESULT APIENTRY Present_hook(IDirect3DDevice9*, const RECT *, const RECT *, HWND, const RGNDATA *);
 Present_t Present_orig = 0;
 
-typedef HRESULT(APIENTRY* EndScene_t) (IDirect3DDevice9*);
-HRESULT APIENTRY EndScene_hook(IDirect3DDevice9*);
-EndScene_t EndScene_orig = 0;
-
 typedef HRESULT(APIENTRY *Reset_t)(IDirect3DDevice9*, D3DPRESENT_PARAMETERS*);
 HRESULT APIENTRY Reset_hook(IDirect3DDevice9*, D3DPRESENT_PARAMETERS*);
 Reset_t Reset_orig = 0;
@@ -42,6 +38,8 @@ CreateOffscreenPlainSurface_t oCreateOffscreenPlainSurface = 0;
 HRESULT APIENTRY hkGetRenderTargetData(LPDIRECT3DDEVICE9 pDevice, IDirect3DSurface9 *pRenderTarget, IDirect3DSurface9 *pDestSurface)
 {
 	//called
+
+	screenshot_taken = true;
 
 	//temp disable visuals (it is too late to do this, screens are still dirty)
 	//wallhack = 0;
@@ -62,7 +60,7 @@ HRESULT APIENTRY hkCreateOffscreenPlainSurface(LPDIRECT3DDEVICE9 pDevice, UINT W
 	//nograss = 0;
 	//nofog = 0;
 
-	//screenshot_taken = true;
+	screenshot_taken = true;
 
 	//prevent local screenshot (is screenshot still uploaded to gm?)
 	Width = 1;
@@ -104,21 +102,6 @@ HRESULT APIENTRY SetTexture_hook(LPDIRECT3DDEVICE9 pDevice, DWORD Sampler, IDire
 
 		LoadCfg();
 	}
-
-	/*
-	//reload visuals
-	if(screenshot_taken)
-	{
-		static DWORD lastTime = timeGetTime();
-		DWORD timePassed = timeGetTime() - lastTime;
-		if (timePassed>1000)
-		{
-			screenshot_taken = false;
-			LoadCfg();
-			lastTime = timeGetTime();
-		}
-	}
-	*/
 
 	//get vSize
 	if (SUCCEEDED(pDevice->GetVertexShader(&vShader)))
@@ -234,6 +217,17 @@ HRESULT APIENTRY Present_hook(IDirect3DDevice9* pDevice, const RECT *pSourceRect
 
 	if (Font)
 		DrawMenu(pDevice);
+
+	if (screenshot_taken && Font)
+		DrawCenteredString(Font, (int)Viewport.Width/2, (int)Viewport.Height/2, D3DCOLOR_ARGB(255, 255, 255, 255), "Someone reported you. Screenshot blocked. (gmcomplaint.jpg)");
+
+	static DWORD lastTime = timeGetTime();
+	DWORD timePassed = timeGetTime() - lastTime;
+	if (timePassed>2000)
+	{
+		screenshot_taken = false;
+		lastTime = timeGetTime();
+	}
 
 	//Shift|RMouse|LMouse|Ctrl|Alt|Space|X|C
 	if (aimkey == 0) Daimkey = 0;
@@ -363,16 +357,6 @@ HRESULT APIENTRY Present_hook(IDirect3DDevice9* pDevice, const RECT *pSourceRect
 
 //==========================================================================================================================
 
-HRESULT APIENTRY EndScene_hook(IDirect3DDevice9* pDevice)
-{
-	if (Font)
-		DrawMenu(pDevice);
-
-	return EndScene_orig(pDevice);
-}
-
-//==========================================================================================================================
-
 HRESULT APIENTRY Reset_hook(IDirect3DDevice9* pDevice, D3DPRESENT_PARAMETERS *pPresentationParameters)
 {
 	if (Font)
@@ -470,8 +454,6 @@ DWORD WINAPI RosD3D(__in LPVOID lpParameter)
 	if (MH_Initialize() != MH_OK) { return 1; }
 	if (MH_CreateHook((DWORD_PTR*)dVtable[17], &Present_hook, reinterpret_cast<void**>(&Present_orig)) != MH_OK) { return 1; }
 	if (MH_EnableHook((DWORD_PTR*)dVtable[17]) != MH_OK) { return 1; }
-	if (MH_CreateHook((DWORD_PTR*)dVtable[42], &EndScene_hook, reinterpret_cast<void**>(&EndScene_orig)) != MH_OK) { return 1; }
-	if (MH_EnableHook((DWORD_PTR*)dVtable[42]) != MH_OK) { return 1; }
 	if (MH_CreateHook((DWORD_PTR*)dVtable[100], &SetStreamSource_hook, reinterpret_cast<void**>(&SetStreamSource_orig)) != MH_OK) { return 1; }
 	if (MH_EnableHook((DWORD_PTR*)dVtable[100]) != MH_OK) { return 1; }
 	if (MH_CreateHook((DWORD_PTR*)dVtable[65], &SetTexture_hook, reinterpret_cast<void**>(&SetTexture_orig)) != MH_OK) { return 1; }

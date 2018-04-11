@@ -48,7 +48,7 @@ LPDIRECT3DTEXTURE9 Red, Green, Blue, Yellow;
 
 int countnum = 0;
 
-bool screenshot_taken = false;
+static BOOL screenshot_taken = FALSE;
 
 //==========================================================================================================================
 
