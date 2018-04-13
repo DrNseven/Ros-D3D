@@ -1,5 +1,5 @@
 /*
-* Ros D3D 1.1 by n7
+* Ros D3D 1.1b by n7
 How to compile:
 - compile with visual studio community 2017 (..\Microsoft Visual Studio\2017\Community\Common7\IDE\devenv.exe)
 - select Release x86
@@ -219,15 +219,17 @@ HRESULT APIENTRY Present_hook(IDirect3DDevice9* pDevice, const RECT *pSourceRect
 		DrawMenu(pDevice);
 
 	if (screenshot_taken && Font)
+	{
 		DrawCenteredString(Font, (int)Viewport.Width/2, (int)Viewport.Height/2, D3DCOLOR_ARGB(255, 255, 255, 255), "Someone reported you. Screenshot blocked. (gmcomplaint.jpg)");
 
-	static DWORD lastTime = timeGetTime();
-	DWORD timePassed = timeGetTime() - lastTime;
-	if (timePassed>2000)
-	{
-		screenshot_taken = false;
-		//LoadCfg();
-		lastTime = timeGetTime();
+		static DWORD lastTime = timeGetTime();
+		DWORD timePassed = timeGetTime() - lastTime;
+		if (timePassed>2000)
+		{
+			screenshot_taken = false;
+			LoadCfg();
+			lastTime = timeGetTime();
+		}
 	}
 
 	//Shift|RMouse|LMouse|Ctrl|Alt|Space|X|C
