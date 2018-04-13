@@ -372,7 +372,7 @@ int Current = true;
 int PosX = 30;
 int PosY = 27;
 
-int ShowMenu = false; //off by default
+int ShowMenu = true; //off by default
 
 POINT Pos;
 
@@ -461,18 +461,18 @@ void AddItem(LPDIRECT3DDEVICE9 pDevice, char *text, int &var, char **opt, int Ma
 
 		if (menuselect == Current)
 		{
-			static int lasttick_right = GetTickCount64();
-			static int lasttick_left = GetTickCount64();
-			if (GetAsyncKeyState(VK_RIGHT) && GetTickCount64() - lasttick_right > 100)
+			//static int lasttick_right = GetTickCount64();
+			//static int lasttick_left = GetTickCount64();
+			if (GetAsyncKeyState(VK_RIGHT) &1)//&& GetTickCount64() - lasttick_right > 100)
 			{
-				lasttick_right = GetTickCount64();
+				//lasttick_right = GetTickCount64();
 				var++;
 				if (var > MaxValue)
 					var = 0;
 			}
-			else if (GetAsyncKeyState(VK_LEFT) && GetTickCount64() - lasttick_left > 100)
+			else if (GetAsyncKeyState(VK_LEFT) &1)//&& GetTickCount64() - lasttick_left > 100)
 			{
-				lasttick_left = GetTickCount64();
+				//lasttick_left = GetTickCount64();
 				var--;
 				if (var < 0)
 					var = MaxValue;

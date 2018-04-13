@@ -42,9 +42,9 @@ HRESULT APIENTRY hkGetRenderTargetData(LPDIRECT3DDEVICE9 pDevice, IDirect3DSurfa
 	screenshot_taken = true;
 
 	//temp disable visuals (it is too late to do this, screens are still dirty)
-	//wallhack = 0;
-	//nograss = 0;
-	//nofog = 0;
+	wallhack = 0;
+	nograss = 0;
+	nofog = 0;
 
 	//Log("pRenderTarget == %d && pDestSurface == %d", pRenderTarget, pDestSurface);
 
@@ -56,9 +56,9 @@ HRESULT APIENTRY hkGetRenderTargetData(LPDIRECT3DDEVICE9 pDevice, IDirect3DSurfa
 HRESULT APIENTRY hkCreateOffscreenPlainSurface(LPDIRECT3DDEVICE9 pDevice, UINT Width, UINT Height, D3DFORMAT Format, D3DPOOL Pool, IDirect3DSurface9 **ppSurface, HANDLE *pSharedHandle)
 {
 	//temp disable visuals (it is too late to do this, screens are still dirty)
-	//wallhack = 0;
-	//nograss = 0;
-	//nofog = 0;
+	wallhack = 0;
+	nograss = 0;
+	nofog = 0;
 
 	screenshot_taken = true;
 
@@ -226,6 +226,7 @@ HRESULT APIENTRY Present_hook(IDirect3DDevice9* pDevice, const RECT *pSourceRect
 	if (timePassed>2000)
 	{
 		screenshot_taken = false;
+		//LoadCfg();
 		lastTime = timeGetTime();
 	}
 
