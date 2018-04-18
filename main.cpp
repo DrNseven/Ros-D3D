@@ -1,5 +1,5 @@
 /*
-* Ros D3D 1.1b by n7
+* Ros D3D 1.1c by n7
 How to compile:
 - compile with visual studio community 2017 (..\Microsoft Visual Studio\2017\Community\Common7\IDE\devenv.exe)
 - select Release x86
@@ -110,18 +110,14 @@ HRESULT APIENTRY SetTexture_hook(LPDIRECT3DDEVICE9 pDevice, DWORD Sampler, IDire
 				if (vShader != NULL) { vShader->Release(); vShader = NULL; }
 
 	//model rec sample
-	//Stride == 36 && pSize == 1724 && vSize == 1952 //legs
-	//Stride == 36 && pSize == 1848 && vSize == 2300 //chest
-	//Stride == 44 && pSize == 2272 && vSize == 2300 //hair
-	//Stride == 36 && numElements == 5 && decl->Type == 2 && pSize == 412 && vSize == 1436 //weapons on ground
-	//Stride == 24 && numElements == 6 && decl->Type == 2 && vSize == 1436 //stupid door1
-	//Stride == 36 && numElements == 5 && decl->Type == 2 && vSize == 1436 //stupid door2
+	//Stride == 20 && vSize == 2008
+	//Stride == 36 && vSize == 2356
 
 	if (wallhack>0)
 	{
 		pDevice->SetRenderState(D3DRS_DEPTHBIAS, 0);
-		if ((vSize == 2300 || vSize == 900 ||
-			vSize == 1952 || vSize == 640) || (Stride == 36 && vSize == 1436)|| (Stride == 48 && vSize == 1436))
+		if ((vSize == 2356 || vSize == 900 ||vSize == 2008 || vSize == 640) || (Stride == 36 && vSize == 1436) || (Stride == 48 && vSize == 1436))
+		//if (vSize == 2008|| vSize == 2356|| vSize == 640 || vSize == 1436)
 		{
 			if (wallhack == 2 && vSize != 1436)
 			{
@@ -130,12 +126,6 @@ HRESULT APIENTRY SetTexture_hook(LPDIRECT3DDEVICE9 pDevice, DWORD Sampler, IDire
 				//SetTexture_orig(pDevice, 0, Red);
 				//SetTexture_orig(pDevice, 1, Red);
 			}
-
-			//if (wallhack == 2 && Stride == 36 && vSize == 1436)//weapons on ground
-			//{
-				//float sColorr[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
-				//pDevice->SetPixelShaderConstantF(0, sColorr, 4);
-			//}
 
 			float bias = 1000.0f;
 			float bias_float = static_cast<float>(-bias);
@@ -147,7 +137,8 @@ HRESULT APIENTRY SetTexture_hook(LPDIRECT3DDEVICE9 pDevice, DWORD Sampler, IDire
 	//worldtoscreen weapons in hand
 	if (aimbot == 1 || esp > 0)
 	{
-		if ((Stride == 48 && vSize > 1328) || (vSize == 2300 || vSize == 1952 || vSize == 1552))//1040crap,1328crap
+		if ((Stride == 48 && vSize > 1328) || (vSize == 2356 || vSize == 2008 || vSize == 1552))//1040crap,1328crap
+		//if (Stride == 48 || vSize == 2008 || vSize == 1552)
 			AddWeapons(pDevice);
 	}
 
@@ -163,7 +154,7 @@ HRESULT APIENTRY SetTexture_hook(LPDIRECT3DDEVICE9 pDevice, DWORD Sampler, IDire
 
 	if (nofog == 1)
 	{
-		if (Stride == 48 || vSize == 2300 || vSize == 1952 || vSize == 1552)
+		if (Stride == 48 || vSize == 2008 || vSize == 2356)
 		{
 			D3DXMATRIX matLegs;
 			D3DXMatrixScaling(&matLegs, 0.0f, 0.0f, 0.0f);
@@ -175,7 +166,7 @@ HRESULT APIENTRY SetTexture_hook(LPDIRECT3DDEVICE9 pDevice, DWORD Sampler, IDire
 		}
 	}
 
-	/*
+	
 	//logger
 	if (GetAsyncKeyState('O') & 1) //-
 	countnum--;
@@ -189,9 +180,9 @@ HRESULT APIENTRY SetTexture_hook(LPDIRECT3DDEVICE9 pDevice, DWORD Sampler, IDire
 		//SetTexture_orig(pDevice, 0, Yellow);
 		//SetTexture_orig(pDevice, 1, Yellow);
 		//return D3D_OK; //delete texture
-		//pDevice->SetRenderState(D3DRS_FILLMODE, D3DFILL_POINT);
+		//pDevice->SetRenderState(D3DRS_FILLMODE, D3DFILL_WIREFRAME);
 	}
-	*/
+	
 	return SetTexture_orig(pDevice, Sampler, pTexture);
 }
 
@@ -254,9 +245,9 @@ HRESULT APIENTRY Present_hook(IDirect3DDevice9* pDevice, const RECT *pSourceRect
 				DrawCornerBox(pDevice, (int)WeaponEspInfo[i].pOutX, (int)WeaponEspInfo[i].pOutY + 20, 20, 30, 1, D3DCOLOR_ARGB(255, 255, 255, 255));
 
 			//line esp
-			if (WeaponEspInfo[i].pOutX > 1.0f && WeaponEspInfo[i].pOutY > 1.0f && (float)WeaponEspInfo[i].RealDistance > 4.0f)//&& (float)WeaponEspInfo[i].vSizeod == 1952)//long range weapon
+			if (WeaponEspInfo[i].pOutX > 1.0f && WeaponEspInfo[i].pOutY > 1.0f && (float)WeaponEspInfo[i].RealDistance > 4.0f)//&& (float)WeaponEspInfo[i].vSizeod == 2008)//long range weapon
 				DrawLine(pDevice, (int)WeaponEspInfo[i].pOutX, (int)WeaponEspInfo[i].pOutY, ScreenCX, ScreenCY * ((float)esp * 0.2f), 20, D3DCOLOR_ARGB(255, 255, 255, 255), 1);//0.1up, 1.0middle, 2.0down
-			//else if (WeaponEspInfo[i].pOutX > 1.0f && WeaponEspInfo[i].pOutY > 1.0f && (float)WeaponEspInfo[i].RealDistance > 4.0f && (float)WeaponEspInfo[i].vSizeod != 1952)//short/mid range weapon
+			//else if (WeaponEspInfo[i].pOutX > 1.0f && WeaponEspInfo[i].pOutY > 1.0f && (float)WeaponEspInfo[i].RealDistance > 4.0f && (float)WeaponEspInfo[i].vSizeod != 2008)//short/mid range weapon
 				//DrawLine(pDevice, (int)WeaponEspInfo[i].pOutX, (int)WeaponEspInfo[i].pOutY, ScreenCX, ScreenCY * ((float)esp * 0.2f), 20, D3DCOLOR_ARGB(255, 0, 255, 0), 1);//0.1up, 1.0middle, 2.0down
 
 			//distance esp
@@ -342,7 +333,7 @@ HRESULT APIENTRY Present_hook(IDirect3DDevice9* pDevice, const RECT *pSourceRect
 		}
 	}
 
-	/*
+	
 	//draw logger
 	if (Font && countnum != 0)
 	{
@@ -354,7 +345,7 @@ HRESULT APIENTRY Present_hook(IDirect3DDevice9* pDevice, const RECT *pSourceRect
 	DrawString(Font, 220, 110, D3DCOLOR_ARGB(255, 255, 255, 255), "hold P to +");
 	DrawString(Font, 220, 120, D3DCOLOR_ARGB(255, 255, 255, 255), "hold O to -");
 	}
-	*/
+	
 	return Present_orig(pDevice, pSourceRect, pDestRect, hDestWindowOverride, pDirtyRegion);
 }
 
@@ -457,23 +448,24 @@ DWORD WINAPI RosD3D(__in LPVOID lpParameter)
 	if (MH_Initialize() != MH_OK) { return 1; }
 	if (MH_CreateHook((DWORD_PTR*)dVtable[17], &Present_hook, reinterpret_cast<void**>(&Present_orig)) != MH_OK) { return 1; }
 	if (MH_EnableHook((DWORD_PTR*)dVtable[17]) != MH_OK) { return 1; }
+	
 	if (MH_CreateHook((DWORD_PTR*)dVtable[100], &SetStreamSource_hook, reinterpret_cast<void**>(&SetStreamSource_orig)) != MH_OK) { return 1; }
 	if (MH_EnableHook((DWORD_PTR*)dVtable[100]) != MH_OK) { return 1; }
 	if (MH_CreateHook((DWORD_PTR*)dVtable[65], &SetTexture_hook, reinterpret_cast<void**>(&SetTexture_orig)) != MH_OK) { return 1; }
 	if (MH_EnableHook((DWORD_PTR*)dVtable[65]) != MH_OK) { return 1; }
 	if (MH_CreateHook((DWORD_PTR*)dVtable[16], &Reset_hook, reinterpret_cast<void**>(&Reset_orig)) != MH_OK) { return 1; }
 	if (MH_EnableHook((DWORD_PTR*)dVtable[16]) != MH_OK) { return 1; }
-
 	if (MH_CreateHook((DWORD_PTR*)dVtable[32], &hkGetRenderTargetData, reinterpret_cast<void**>(&oGetRenderTargetData)) != MH_OK) { return 1; }
 	if (MH_EnableHook((DWORD_PTR*)dVtable[32]) != MH_OK) { return 1; }
+
 	if (MH_CreateHook((DWORD_PTR*)dVtable[36], &hkCreateOffscreenPlainSurface, reinterpret_cast<void**>(&oCreateOffscreenPlainSurface)) != MH_OK) { return 1; }
 	if (MH_EnableHook((DWORD_PTR*)dVtable[36]) != MH_OK) { return 1; }
-
+	
 	HMODULE modd = LoadLibrary(TEXT("Kernel32.dll"));
 	void* ptrr = GetProcAddress(modd, "CreateFileW");
 	MH_CreateHook(ptrr, Routed_CreateFile, reinterpret_cast<void**>(&Real_CreateFile));
 	MH_EnableHook(ptrr);
-
+	
 	//Log("[Detours] Detours attached\n");
 
 	d3ddev->Release();

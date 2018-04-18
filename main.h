@@ -144,7 +144,7 @@ void AddWeapons(LPDIRECT3DDEVICE9 Device)
 	D3DXMATRIX matrix;
 	Device->GetVertexShaderConstantF(13, matrix, 4);
 
-	D3DXVECTOR3 pOut, pIn(0, (float)aimheight, 0);
+	D3DXVECTOR3 pOut, pIn(0, (float)aimheight, 0);//-3?
 	float distance = pIn.x * matrix._14 + pIn.y * matrix._24 + pIn.z * matrix._34 + matrix._44;
 	D3DXVec3TransformCoord(&pOut, &pIn, &matrix);
 
