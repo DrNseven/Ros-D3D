@@ -166,7 +166,7 @@ HRESULT APIENTRY SetTexture_hook(LPDIRECT3DDEVICE9 pDevice, DWORD Sampler, IDire
 		}
 	}
 
-	
+	/*
 	//logger
 	if (GetAsyncKeyState('O') & 1) //-
 	countnum--;
@@ -182,7 +182,7 @@ HRESULT APIENTRY SetTexture_hook(LPDIRECT3DDEVICE9 pDevice, DWORD Sampler, IDire
 		//return D3D_OK; //delete texture
 		//pDevice->SetRenderState(D3DRS_FILLMODE, D3DFILL_WIREFRAME);
 	}
-	
+	*/
 	return SetTexture_orig(pDevice, Sampler, pTexture);
 }
 
@@ -333,7 +333,7 @@ HRESULT APIENTRY Present_hook(IDirect3DDevice9* pDevice, const RECT *pSourceRect
 		}
 	}
 
-	
+	/*
 	//draw logger
 	if (Font && countnum != 0)
 	{
@@ -345,7 +345,7 @@ HRESULT APIENTRY Present_hook(IDirect3DDevice9* pDevice, const RECT *pSourceRect
 	DrawString(Font, 220, 110, D3DCOLOR_ARGB(255, 255, 255, 255), "hold P to +");
 	DrawString(Font, 220, 120, D3DCOLOR_ARGB(255, 255, 255, 255), "hold O to -");
 	}
-	
+	*/
 	return Present_orig(pDevice, pSourceRect, pDestRect, hDestWindowOverride, pDirtyRegion);
 }
 
