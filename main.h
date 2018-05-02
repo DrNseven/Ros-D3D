@@ -334,22 +334,38 @@ void DrawLine(IDirect3DDevice9* pDevice, float X, float Y, float X2, float Y2, f
 	pDevice->SetPixelShader(oldlShader);
 }
 
-//unfinished. needs renderstates
+
 LPD3DXLINE pLine;
 void DrawLine2(IDirect3DDevice9* pDevice, float StartX, float StartY, float EndX, float EndY, int Width, D3DCOLOR dColor)
 {
+	pLine->SetAntialias(TRUE);
 	pLine[0].SetWidth(Width);
-	pLine[0].SetGLLines(0);
+	pLine[0].SetGLLines(1);
 	pLine[0].SetAntialias(1);
 	D3DXVECTOR2 v2Line[2];
 	v2Line[0].x = StartX;
 	v2Line[0].y = StartY;
 	v2Line[1].x = EndX;
 	v2Line[1].y = EndY;
+
+	pDevice->SetRenderState(D3DRS_STENCILENABLE, FALSE);
+	pDevice->SetRenderState(D3DRS_MULTISAMPLEANTIALIAS, TRUE);
+	pDevice->SetRenderState(D3DRS_ANTIALIASEDLINEENABLE, TRUE);
+
 	pLine[0].Begin();
 	pLine[0].Draw(v2Line, 2, dColor);
 	pLine[0].End();
+
+	pDevice->SetRenderState(D3DRS_ANTIALIASEDLINEENABLE, FALSE);
+	pDevice->SetRenderState(D3DRS_MULTISAMPLEANTIALIAS, FALSE);
+	pDevice->SetRenderState(D3DRS_STENCILENABLE, TRUE);
 }
+
+//fix me
+//void DrawLine3(LPDIRECT3DDEVICE9 pDevice, D3DCOLOR Color, int x, int y, int w)
+//{
+	//DrawP(pDevice, x, y, w, 2, Color);
+//}
 
 //=====================================================================================================================
  
