@@ -7,12 +7,18 @@
 #pragma comment(lib, "winmm.lib")
 
 //dx sdk 
+//#include <d3dx9.h"
+//#pragma comment(lib, "d3dx9.lib")
 #include "DXSDK\d3dx9.h"
 #if defined _M_X64
 #pragma comment(lib, "DXSDK/x64/d3dx9.lib") 
 #elif defined _M_IX86
 #pragma comment(lib, "DXSDK/x86/d3dx9.lib")
 #endif
+
+//if using ms detours instead of minhook
+//#include "detours.h"
+//#pragma comment(lib, "Detours.lib")
 
 //DX Includes
 //#include <DirectXMath.h>
@@ -46,9 +52,11 @@ D3DVERTEXBUFFER_DESC vdesc;
 bool InitOnce = true;
 LPDIRECT3DTEXTURE9 Red, Green, Blue, Yellow;
 
-int countnum = 0;
+int countnum = -1;
 
 static BOOL screenshot_taken = FALSE;
+
+//IDirect3DTexture9 *texture;
 
 //==========================================================================================================================
 
@@ -57,6 +65,7 @@ static BOOL screenshot_taken = FALSE;
 //visuals
 int wallhack = 1;				//wallhack
 int esp = 10;					//esp
+int picesp = 0;					//pic esp
 int nograss = 1;				//nograss
 int nofog = 1;					//nofog
 
@@ -325,6 +334,108 @@ void DrawLine(IDirect3DDevice9* pDevice, float X, float Y, float X2, float Y2, f
 	pDevice->SetPixelShader(oldlShader);
 }
 
+//unfinished. needs renderstates
+LPD3DXLINE pLine;
+void DrawLine2(IDirect3DDevice9* pDevice, float StartX, float StartY, float EndX, float EndY, int Width, D3DCOLOR dColor)
+{
+	pLine[0].SetWidth(Width);
+	pLine[0].SetGLLines(0);
+	pLine[0].SetAntialias(1);
+	D3DXVECTOR2 v2Line[2];
+	v2Line[0].x = StartX;
+	v2Line[0].y = StartY;
+	v2Line[1].x = EndX;
+	v2Line[1].y = EndY;
+	pLine[0].Begin();
+	pLine[0].Draw(v2Line, 2, dColor);
+	pLine[0].End();
+}
+
+//=====================================================================================================================
+ 
+LPD3DXSPRITE pSprite = NULL; 
+LPDIRECT3DTEXTURE9 pSpriteTextureImage = NULL;
+bool SpriteCreated = false;
+
+// COM utils
+template<class COMObject>
+void SafeRelease(COMObject*& pRes)
+{
+	IUnknown *unknown = pRes;
+	if (unknown)
+	{
+		unknown->Release();
+	}
+	pRes = NULL;
+}
+
+bool CreateSprite(IDirect3DDevice9* pDevice)
+{
+	HRESULT hr;
+
+	hr = D3DXCreateTextureFromFileA(pDevice, GetDirFile("circle.png"), &pSpriteTextureImage);
+
+	if (FAILED(hr))
+	{
+		//Log("D3DXCreateTextureFromFile failed");
+		SpriteCreated = false;
+		return false;
+	}
+
+	hr = D3DXCreateSprite(pDevice, &pSprite);
+
+	if (FAILED(hr))
+	{
+		//Log("D3DXCreateSprite failed");
+		SpriteCreated = false;
+		return false;
+	}
+
+	SpriteCreated = true;
+
+	return true;
+}
+
+// Delete work surfaces when device gets reset
+void DeleteSprite()
+{
+	if (pSprite != NULL)
+	{
+		//Log("SafeRelease(pSprite)");
+		SafeRelease(pSprite);
+	}
+
+	SpriteCreated = false;
+}
+
+// Draw Sprite
+void DrawPic(IDirect3DDevice9* pDevice, IDirect3DTexture9 *tex, int cx, int cy)
+{
+	if (SpriteCreated && pSprite != NULL)
+	{
+		//position = PicSize(in pixel) / 2, 
+		//64 -> 32
+		D3DXVECTOR3 position;
+		position.x = (float)cx-32.0f;
+		position.y = (float)cy-32.0f;
+		position.z = 0.0f;
+
+		pDevice->SetRenderState(D3DRS_ALPHABLENDENABLE, TRUE);
+		pDevice->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_SRCALPHA);
+		pDevice->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA);
+		pDevice->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_SELECTARG1);
+		pDevice->SetTextureStageState(0, D3DTSS_COLORARG1, D3DTA_TEXTURE);
+		pDevice->SetTextureStageState(0, D3DTSS_COLORARG2, D3DTA_DIFFUSE);
+		pDevice->SetFVF(D3DFVF_XYZRHW | D3DFVF_DIFFUSE | D3DFVF_TEX1);
+		pDevice->SetPixelShader(NULL);
+
+		//draw pic
+		pSprite->Begin(D3DXSPRITE_ALPHABLEND);
+		pSprite->Draw(tex, NULL, NULL, &position, 0xFFFFFFFF);
+		pSprite->End();
+	}
+}
+
 //==========================================================================================================================
 
 void SaveCfg()
@@ -333,6 +444,7 @@ void SaveCfg()
 	fout.open(GetDirFile("rosd3d.ini"), ios::trunc);
 	fout << "wallhack " << wallhack << endl;
 	fout << "esp " << esp << endl;
+	fout << "picesp " << picesp << endl;
 	fout << "aimbot " << aimbot << endl;
 	fout << "aimkey " << aimkey << endl;
 	fout << "aimsens " << aimsens << endl;
@@ -351,6 +463,7 @@ void LoadCfg()
 	fin.open(GetDirFile("rosd3d.ini"), ifstream::in);
 	fin >> Word >> wallhack;
 	fin >> Word >> esp;
+	fin >> Word >> picesp;
 	fin >> Word >> aimbot;
 	fin >> Word >> aimkey;
 	fin >> Word >> aimsens;
@@ -400,14 +513,14 @@ void WriteText(int x, int y, DWORD color, char *text)
 {
 	RECT rect;
 	SetRect(&rect, x, y, x, y);
-	Font->DrawText(0, text, -1, &rect, DT_NOCLIP | DT_LEFT, color);
+	Font->DrawTextA(0, text, -1, &rect, DT_NOCLIP | DT_LEFT, color);
 }
 
 void lWriteText(int x, int y, DWORD color, char *text)
 {
 	RECT rect;
 	SetRect(&rect, x, y, x, y);
-	Font->DrawText(0, text, -1, &rect, DT_NOCLIP | DT_RIGHT, color);
+	Font->DrawTextA(0, text, -1, &rect, DT_NOCLIP | DT_RIGHT, color);
 }
 
 void Category(LPDIRECT3DDEVICE9 pDevice, char *text)
@@ -505,7 +618,7 @@ char *opt_autoshoot[] = { "[OFF]", "[OnKeyDown]" };
 void DrawMenu(LPDIRECT3DDEVICE9 pDevice)
 {
 	static int lasttick_insert = GetTickCount64();
-	if (GetAsyncKeyState(VK_INSERT) && GetTickCount64() - lasttick_insert > 100)
+	if (GetAsyncKeyState(VK_INSERT) && GetTickCount64() - lasttick_insert > 150)
 	{
 		lasttick_insert = GetTickCount64();
 		ShowMenu = !ShowMenu;
@@ -533,6 +646,7 @@ void DrawMenu(LPDIRECT3DDEVICE9 pDevice)
 
 		AddItem(pDevice, " Wallhack", wallhack, opt_WhChams, 2);
 		AddItem(pDevice, " Esp", esp, opt_ZeroTen, 10);
+		AddItem(pDevice, " Pic Esp", picesp, opt_OnOff, 1);
 		AddItem(pDevice, " Aimbot", aimbot, opt_OnOff, 1);
 		AddItem(pDevice, " Aimkey", aimkey, opt_Keys, 8);
 		AddItem(pDevice, " Aimsens", aimsens, opt_ZeroTen, 10);
@@ -546,7 +660,7 @@ void DrawMenu(LPDIRECT3DDEVICE9 pDevice)
 			menuselect = 1;
 
 		if (menuselect < 1)
-			menuselect = 10;//Current;
+			menuselect = 11;//Current;
 	}
 }
 

@@ -1,5 +1,5 @@
 /*
-* Ros D3D 1.1c by n7
+* Ros D3D 1.2 by n7
 How to compile:
 - compile with visual studio community 2017 (..\Microsoft Visual Studio\2017\Community\Common7\IDE\devenv.exe)
 - select Release x86
@@ -86,6 +86,8 @@ HRESULT APIENTRY SetStreamSource_hook(LPDIRECT3DDEVICE9 pDevice, UINT StreamNumb
 
 HRESULT APIENTRY SetTexture_hook(LPDIRECT3DDEVICE9 pDevice, DWORD Sampler, IDirect3DBaseTexture9 *pTexture)
 {
+	//texture = static_cast<IDirect3DTexture9*>(pTexture);
+
 	if (InitOnce)
 	{
 		InitOnce = false;
@@ -135,7 +137,7 @@ HRESULT APIENTRY SetTexture_hook(LPDIRECT3DDEVICE9 pDevice, DWORD Sampler, IDire
 	}
 
 	//worldtoscreen weapons in hand
-	if (aimbot == 1 || esp > 0)
+	if (aimbot == 1 || esp > 0|| picesp == 1)
 	{
 		if ((Stride == 48 && vSize > 1328) || (vSize == 2356 || vSize == 2008 || vSize == 1552))//1040crap,1328crap
 		//if (Stride == 48 || vSize == 2008 || vSize == 1552)
@@ -202,10 +204,19 @@ HRESULT APIENTRY Present_hook(IDirect3DDevice9* pDevice, const RECT *pSourceRect
 	if (Font == NULL)
 		D3DXCreateFont(pDevice, 14, 0, FW_BOLD, 0, FALSE, DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, DEFAULT_QUALITY, DEFAULT_PITCH | FF_DONTCARE, TEXT("Italic"), &Font);
 
-	if (ShowMenu)
-		//draw background
-		DrawBox(pDevice, 71.0f, 86.0f, 200.0f, 160.0f, D3DCOLOR_ARGB(120, 30, 200, 200));//180 = up/down, 200 = left/right
+	//create dxLine
+	if(!pLine)
+		D3DXCreateLine(pDevice, &pLine);
 
+	//create sprite
+	if (!SpriteCreated)
+		CreateSprite(pDevice);
+
+	//draw background
+	if (ShowMenu)
+		DrawBox(pDevice, 71.0f, 86.0f, 200.0f, 180.0f, D3DCOLOR_ARGB(120, 30, 200, 200));//200 = left/right, 180 = up/down
+
+	//draw menu
 	if (Font)
 		DrawMenu(pDevice);
 
@@ -246,9 +257,8 @@ HRESULT APIENTRY Present_hook(IDirect3DDevice9* pDevice, const RECT *pSourceRect
 
 			//line esp
 			if (WeaponEspInfo[i].pOutX > 1.0f && WeaponEspInfo[i].pOutY > 1.0f && (float)WeaponEspInfo[i].RealDistance > 4.0f)//&& (float)WeaponEspInfo[i].vSizeod == 2008)//long range weapon
-				DrawLine(pDevice, (int)WeaponEspInfo[i].pOutX, (int)WeaponEspInfo[i].pOutY, ScreenCX, ScreenCY * ((float)esp * 0.2f), 20, D3DCOLOR_ARGB(255, 255, 255, 255), 1);//0.1up, 1.0middle, 2.0down
-			//else if (WeaponEspInfo[i].pOutX > 1.0f && WeaponEspInfo[i].pOutY > 1.0f && (float)WeaponEspInfo[i].RealDistance > 4.0f && (float)WeaponEspInfo[i].vSizeod != 2008)//short/mid range weapon
-				//DrawLine(pDevice, (int)WeaponEspInfo[i].pOutX, (int)WeaponEspInfo[i].pOutY, ScreenCX, ScreenCY * ((float)esp * 0.2f), 20, D3DCOLOR_ARGB(255, 0, 255, 0), 1);//0.1up, 1.0middle, 2.0down
+				DrawLine(pDevice, (int)WeaponEspInfo[i].pOutX, (int)WeaponEspInfo[i].pOutY, ScreenCX, ScreenCY * ((float)esp * 0.2f), 1, D3DCOLOR_ARGB(255, 255, 255, 255), 0);//0.1up, 1.0middle, 2.0down
+				//DrawLine2(pDevice, (int)WeaponEspInfo[i].pOutX, (int)WeaponEspInfo[i].pOutY, ScreenCX, ScreenCY * ((float)esp * 0.2f), 1, D3DCOLOR_ARGB(255, 255, 255, 255));
 
 			//distance esp
 			if (WeaponEspInfo[i].pOutX > 1.0f && WeaponEspInfo[i].pOutY > 1.0f && (float)WeaponEspInfo[i].RealDistance > 200.0f)
@@ -259,6 +269,16 @@ HRESULT APIENTRY Present_hook(IDirect3DDevice9* pDevice, const RECT *pSourceRect
 			//text esp
 			//if (WeaponEspInfo[i].pOutX > 1.0f && WeaponEspInfo[i].pOutY > 1.0f && (float)WeaponEspInfo[i].distance > 4.0f)
 			//DrawString(Font, (int)WeaponEspInfo[i].pOutX, (int)WeaponEspInfo[i].pOutY, D3DCOLOR_ARGB(255, 255, 255, 255), "o");
+		}
+	}
+
+	if (picesp == 1 && WeaponEspInfo.size() != NULL)
+	{
+		for (unsigned int i = 0; i < WeaponEspInfo.size(); i++)
+		{
+			//pic esp
+			if (WeaponEspInfo[i].pOutX > 1.0f && WeaponEspInfo[i].pOutY > 1.0f && (float)WeaponEspInfo[i].RealDistance > 4.0f)
+				DrawPic(pDevice, pSpriteTextureImage, (int)WeaponEspInfo[i].pOutX, (int)WeaponEspInfo[i].pOutY);
 		}
 	}
 
@@ -353,8 +373,16 @@ HRESULT APIENTRY Present_hook(IDirect3DDevice9* pDevice, const RECT *pSourceRect
 
 HRESULT APIENTRY Reset_hook(IDirect3DDevice9* pDevice, D3DPRESENT_PARAMETERS *pPresentationParameters)
 {
+	DeleteSprite();
+
 	if (Font)
 		Font->OnLostDevice();
+
+	if (pLine)
+		pLine->OnLostDevice();
+
+	if (pSprite)
+		pSprite->OnLostDevice();
 
 	HRESULT ResetReturn = Reset_orig(pDevice, pPresentationParameters);
 
@@ -362,6 +390,12 @@ HRESULT APIENTRY Reset_hook(IDirect3DDevice9* pDevice, D3DPRESENT_PARAMETERS *pP
 	{
 		if (Font)
 			Font->OnResetDevice();
+
+		if (pLine)
+			pLine->OnResetDevice();
+
+		if (pSprite)
+			pSprite->OnResetDevice();
 
 		InitOnce = true;
 	}
@@ -443,6 +477,27 @@ DWORD WINAPI RosD3D(__in LPVOID lpParameter)
 	//{
 			//Log("[DirectX] vtable[%i]: %x, pointer at %x", i, dVtable[i], &dVtable[i]);
 	//}
+ 
+	/*
+	// Alternative Detour x86
+	Present_orig = (Present_t)dVtable[17];
+	SetTexture_orig = (SetTexture_t)dVtable[65];
+	SetStreamSource_orig = (SetStreamSource_t)dVtable[100];
+	Reset_orig = (Reset_t)dVtable[17];
+	oGetRenderTargetData = (GetRenderTargetData_t)dVtable[32];
+	oCreateOffscreenPlainSurface = (CreateOffscreenPlainSurface_t)dVtable[36];
+
+	DetourTransactionBegin();
+	DetourUpdateThread(GetCurrentThread());
+	DetourAttach(&(PVOID&)Present_orig, Present_hook);
+	DetourAttach(&(PVOID&)SetTexture_orig, SetTexture_hook);
+	DetourAttach(&(PVOID&)SetStreamSource_orig, SetStreamSource_hook);
+	DetourAttach(&(PVOID&)Reset_orig, Reset_hook);
+	DetourAttach(&(PVOID&)oGetRenderTargetData, hkGetRenderTargetData);
+	DetourAttach(&(PVOID&)oCreateOffscreenPlainSurface, hkCreateOffscreenPlainSurface);
+	DetourAttach(&(PVOID&)Real_CreateFile, Routed_CreateFile);
+	DetourTransactionCommit();
+	*/
 
 	// Detour functions x86 & x64
 	if (MH_Initialize() != MH_OK) { return 1; }
