@@ -1,4 +1,5 @@
 #include <windows.h>
+#include <sysinfoapi.h>
 #include <fstream>
 #include <string>
 #include <vector>
@@ -160,7 +161,18 @@ void AddWeapons(LPDIRECT3DDEVICE9 Device)
 	pOut.x = Viewport.X + (1.0f + pOut.x) *Viewport.Width / 2.0f;
 	pOut.y = Viewport.Y + (1.0f - pOut.y) *Viewport.Height / 2.0f;
 
-	WeaponEspInfo_t pWeaponEspInfo = { static_cast<float>(pOut.x), static_cast<float>(pOut.y), static_cast<float>(distance*0.1f), static_cast<float>(vSize) };
+	float xx, yy;
+	if (pOut.x > 0.0f && pOut.y > 0.0f && pOut.x < Viewport.Width && pOut.y < Viewport.Height)
+	{
+		xx = pOut.x;
+		yy = pOut.y;
+	}
+	else
+	{
+		xx = -1.0f;
+		yy = -1.0f;
+	}
+	WeaponEspInfo_t pWeaponEspInfo = { static_cast<float>(xx), static_cast<float>(yy), static_cast<float>(distance*0.1f), static_cast<float>(vSize) };
 	WeaponEspInfo.push_back(pWeaponEspInfo);
 }
 
@@ -336,25 +348,20 @@ void DrawLine(IDirect3DDevice9* pDevice, float X, float Y, float X2, float Y2, f
 
 
 LPD3DXLINE pLine;
-void DrawLine2(IDirect3DDevice9* pDevice, float StartX, float StartY, float EndX, float EndY, int Width, D3DCOLOR dColor)
+VOID DrawLine2(IDirect3DDevice9* pDevice, FLOAT startx, FLOAT starty, FLOAT endx, FLOAT endy, FLOAT width, D3DCOLOR dColor)
 {
-	pLine->SetAntialias(TRUE);
-	pLine[0].SetWidth(Width);
-	pLine[0].SetGLLines(1);
-	pLine[0].SetAntialias(1);
-	D3DXVECTOR2 v2Line[2];
-	v2Line[0].x = StartX;
-	v2Line[0].y = StartY;
-	v2Line[1].x = EndX;
-	v2Line[1].y = EndY;
+	D3DXVECTOR2 lines[] = { D3DXVECTOR2(startx, starty), D3DXVECTOR2(endx, endy) };
 
 	pDevice->SetRenderState(D3DRS_STENCILENABLE, FALSE);
 	pDevice->SetRenderState(D3DRS_MULTISAMPLEANTIALIAS, TRUE);
 	pDevice->SetRenderState(D3DRS_ANTIALIASEDLINEENABLE, TRUE);
 
-	pLine[0].Begin();
-	pLine[0].Draw(v2Line, 2, dColor);
-	pLine[0].End();
+	pLine->SetAntialias(TRUE);
+
+	pLine->SetWidth(width);
+	pLine->Begin();
+	pLine->Draw(lines, 2, dColor);
+	pLine->End();
 
 	pDevice->SetRenderState(D3DRS_ANTIALIASEDLINEENABLE, FALSE);
 	pDevice->SetRenderState(D3DRS_MULTISAMPLEANTIALIAS, FALSE);

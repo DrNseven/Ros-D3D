@@ -1,5 +1,5 @@
 /*
-* Ros D3D 1.2 by n7
+* Ros D3D 1.2b by n7
 How to compile:
 - compile with visual studio community 2017 (..\Microsoft Visual Studio\2017\Community\Common7\IDE\devenv.exe)
 - select Release x86
@@ -253,23 +253,21 @@ HRESULT APIENTRY Present_hook(IDirect3DDevice9* pDevice, const RECT *pSourceRect
 		{
 			//box esp
 			if (WeaponEspInfo[i].pOutX > 1.0f && WeaponEspInfo[i].pOutY > 1.0f && (float)WeaponEspInfo[i].RealDistance > 4.0f)
-				DrawCornerBox(pDevice, (int)WeaponEspInfo[i].pOutX, (int)WeaponEspInfo[i].pOutY + 20, 20, 30, 1, D3DCOLOR_ARGB(255, 255, 255, 255));
+				DrawCornerBox(pDevice, (int)WeaponEspInfo[i].pOutX+2, (int)WeaponEspInfo[i].pOutY + 2 + 20, 20, 30, 1, D3DCOLOR_ARGB(255, 255, 255, 255));
 
 			//line esp
 			if (WeaponEspInfo[i].pOutX > 1.0f && WeaponEspInfo[i].pOutY > 1.0f && (float)WeaponEspInfo[i].RealDistance > 4.0f)//&& (float)WeaponEspInfo[i].vSizeod == 2008)//long range weapon
 				DrawLine(pDevice, (int)WeaponEspInfo[i].pOutX, (int)WeaponEspInfo[i].pOutY, ScreenCX, ScreenCY * ((float)esp * 0.2f), 1, D3DCOLOR_ARGB(255, 255, 255, 255), 0);//0.1up, 1.0middle, 2.0down
 				//DrawLine2(pDevice, (int)WeaponEspInfo[i].pOutX, (int)WeaponEspInfo[i].pOutY, ScreenCX, ScreenCY * ((float)esp * 0.2f), 1, D3DCOLOR_ARGB(255, 255, 255, 255));
-				//DrawLine3(pDevice, D3DCOLOR_ARGB(255, 255, 255, 255), (int)WeaponEspInfo[i].pOutX, (int)WeaponEspInfo[i].pOutY, 1);
+				//DrawLine3(pDevice, D3DCOLOR_ARGB(255, 255, 255, 255), (int)WeaponEspInfo[i].pOutX, (int)WeaponEspInfo[i].pOutY, 1);//no
 
 			//distance esp
-			if (WeaponEspInfo[i].pOutX > 1.0f && WeaponEspInfo[i].pOutY > 1.0f && (float)WeaponEspInfo[i].RealDistance > 200.0f)
-				DrawCenteredString(Font, (int)WeaponEspInfo[i].pOutX, (int)WeaponEspInfo[i].pOutY - 20.0f, D3DCOLOR_ARGB(255, 255, 255, 255), "%.f", (float)WeaponEspInfo[i].RealDistance);
-			else if (WeaponEspInfo[i].pOutX > 1.0f && WeaponEspInfo[i].pOutY > 1.0f && (float)WeaponEspInfo[i].RealDistance > 4.0f && (float)WeaponEspInfo[i].RealDistance <= 200.0f)
+			if (WeaponEspInfo[i].pOutX > 1.0f && WeaponEspInfo[i].pOutY > 1.0f && (float)WeaponEspInfo[i].RealDistance > 4.0f && (float)WeaponEspInfo[i].RealDistance <= 200.0f) // 4 - 200 yellow
 				DrawCenteredString(Font, (int)WeaponEspInfo[i].pOutX, (int)WeaponEspInfo[i].pOutY - 20.0f, D3DCOLOR_ARGB(255, 255, 255, 0), "%.f", (float)WeaponEspInfo[i].RealDistance);
-
-			//text esp
-			//if (WeaponEspInfo[i].pOutX > 1.0f && WeaponEspInfo[i].pOutY > 1.0f && (float)WeaponEspInfo[i].distance > 4.0f)
-			//DrawString(Font, (int)WeaponEspInfo[i].pOutX, (int)WeaponEspInfo[i].pOutY, D3DCOLOR_ARGB(255, 255, 255, 255), "o");
+			else if (WeaponEspInfo[i].pOutX > 1.0f && WeaponEspInfo[i].pOutY > 1.0f && (float)WeaponEspInfo[i].RealDistance > 200.0f && (float)WeaponEspInfo[i].RealDistance <= 1000.0f) //200 - 1000 white
+				DrawCenteredString(Font, (int)WeaponEspInfo[i].pOutX, (int)WeaponEspInfo[i].pOutY - 20.0f, D3DCOLOR_ARGB(255, 255, 255, 255), "%.f", (float)WeaponEspInfo[i].RealDistance); 
+			else if (WeaponEspInfo[i].pOutX > 1.0f && WeaponEspInfo[i].pOutY > 1.0f && (float)WeaponEspInfo[i].RealDistance > 1000.0f) //> 1000 gray
+				DrawCenteredString(Font, (int)WeaponEspInfo[i].pOutX, (int)WeaponEspInfo[i].pOutY - 20.0f, D3DCOLOR_ARGB(255, 128, 128, 128), "%.f", (float)WeaponEspInfo[i].RealDistance);
 		}
 	}
 
@@ -420,6 +418,35 @@ HANDLE WINAPI Routed_CreateFile(LPCWSTR lpFileName, DWORD dwDesiredAccess, DWORD
 
 //==========================================================================================================================
 
+typedef WINBASEAPI VOID (WINAPI	*GETLocalTime_t)(__out LPSYSTEMTIME lpSystemTime);
+GETLocalTime_t GETLocalTime_orig = 0;
+VOID WINAPI Hooked_GETLocalTime(__out LPSYSTEMTIME pTime)
+{
+	//loclTimeFun(pTime);//
+	Log("1pTime == %d", pTime);
+	//pTime->wYear = 2014;
+	//pTime->wMonth = 8;
+	//pTime->wDayOfWeek = 6;
+	//pTime->wDay = 1;
+	//pTime->wHour = 16;
+	//pTime->wMinute = 24;
+	//return;
+	return GETLocalTime_orig(pTime);
+}
+
+//==========================================================================================================================
+
+typedef WINBASEAPI VOID (WINAPI* GETSystemTimeAsFileTime_t)(__out LPFILETIME lpSystemTimeAsFileTime);
+GETSystemTimeAsFileTime_t GETSystemTimeAsFileTime_orig = 0;
+VOID WINAPI Hooked_GETSystemTimeAsFileTime(__out LPFILETIME pTime)
+{
+	Log("pTime == %d", pTime);
+	
+	return GETSystemTimeAsFileTime_orig(pTime);
+}
+
+//==========================================================================================================================
+
 DWORD WINAPI RosD3D(__in LPVOID lpParameter)
 {
 	HMODULE dDll = NULL;
@@ -517,10 +544,14 @@ DWORD WINAPI RosD3D(__in LPVOID lpParameter)
 	if (MH_CreateHook((DWORD_PTR*)dVtable[36], &hkCreateOffscreenPlainSurface, reinterpret_cast<void**>(&oCreateOffscreenPlainSurface)) != MH_OK) { return 1; }
 	if (MH_EnableHook((DWORD_PTR*)dVtable[36]) != MH_OK) { return 1; }
 	
-	HMODULE modd = LoadLibrary(TEXT("Kernel32.dll"));
-	void* ptrr = GetProcAddress(modd, "CreateFileW");
-	MH_CreateHook(ptrr, Routed_CreateFile, reinterpret_cast<void**>(&Real_CreateFile));
-	MH_EnableHook(ptrr);
+	HMODULE mod = LoadLibrary(TEXT("Kernel32.dll"));
+	void* ptr = GetProcAddress(mod, "CreateFileW");
+	MH_CreateHook(ptr, Routed_CreateFile, reinterpret_cast<void**>(&Real_CreateFile));
+	MH_EnableHook(ptr);
+
+	//void* ptr2 = GetProcAddress(mod, "GETSystemTimeAsFileTime");
+	//if (MH_CreateHook(ptr2, &Hooked_GETSystemTimeAsFileTime, reinterpret_cast<void**>(&GETSystemTimeAsFileTime_orig)) != MH_OK) { return 1; }
+	//if (MH_EnableHook(ptr2) != MH_OK) { return 1; }
 	
 	//Log("[Detours] Detours attached\n");
 
