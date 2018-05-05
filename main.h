@@ -181,7 +181,7 @@ void AddWeapons(LPDIRECT3DDEVICE9 Device)
 
 //==========================================================================================================================
 
-IDirect3DPixelShader9* oldsShader;
+//IDirect3DPixelShader9* oldsShader;
 void DrawBox(IDirect3DDevice9 *pDevice, float x, float y, float w, float h, D3DCOLOR Color)
 {
 	struct Vertex
@@ -192,9 +192,9 @@ void DrawBox(IDirect3DDevice9 *pDevice, float x, float y, float w, float h, D3DC
 	V[4] = { { x, y + h, 0.0f, 0.0f, Color },{ x, y, 0.0f, 0.01f, Color },
 	{ x + w, y + h, 0.0f, 0.0f, Color },{ x + w, y, 0.0f, 0.0f, Color } };
 	pDevice->SetFVF(D3DFVF_XYZRHW | D3DFVF_DIFFUSE);
-	pDevice->GetPixelShader(&oldsShader);
+	//pDevice->GetPixelShader(&oldsShader);
 
-	pDevice->SetTexture(0, Blue);
+	pDevice->SetTexture(0, NULL);
 	pDevice->SetPixelShader(0);
 
 	// mix texture color
@@ -211,15 +211,15 @@ void DrawBox(IDirect3DDevice9 *pDevice, float x, float y, float w, float h, D3DC
 	//pDevice->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA);
 	//pDevice->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);
 
-	pDevice->SetRenderState(D3DRS_ZENABLE, FALSE);
+	//pDevice->SetRenderState(D3DRS_ZENABLE, FALSE);
 	pDevice->SetRenderState(D3DRS_STENCILENABLE, FALSE);
 
 	pDevice->DrawPrimitiveUP(D3DPT_TRIANGLESTRIP, 2, V, sizeof(Vertex));
 
-	pDevice->SetRenderState(D3DRS_ZENABLE, TRUE);
+	//pDevice->SetRenderState(D3DRS_ZENABLE, TRUE);
 	pDevice->SetRenderState(D3DRS_STENCILENABLE, TRUE);
 
-	pDevice->SetPixelShader(oldsShader);
+	//pDevice->SetPixelShader(oldsShader);
 }
 
 void DrawP(LPDIRECT3DDEVICE9 Device, int baseX, int baseY, int baseW, int baseH, D3DCOLOR Cor)
@@ -319,7 +319,7 @@ public:
 	DWORD Color;
 };
 
-IDirect3DPixelShader9* oldlShader;
+//IDirect3DPixelShader9* oldlShader;
 void DrawLine(IDirect3DDevice9* pDevice, float X, float Y, float X2, float Y2, float Width, D3DCOLOR Color, bool AntiAliased)
 {
 	D3DTLVERTEX qV[2] = {
@@ -330,23 +330,23 @@ void DrawLine(IDirect3DDevice9* pDevice, float X, float Y, float X2, float Y2, f
 
 	pDevice->SetFVF(D3DFVF_TL);
 
-	pDevice->GetPixelShader(&oldlShader);
+	//pDevice->GetPixelShader(&oldlShader);
 
 	//pDevice->SetTexture(0, Yellow);
 	pDevice->SetTexture(0, NULL);
 	pDevice->SetPixelShader(0);
 
-	pDevice->SetRenderState(D3DRS_ZENABLE, FALSE);
+	//pDevice->SetRenderState(D3DRS_ZENABLE, FALSE);
 	pDevice->SetRenderState(D3DRS_STENCILENABLE, FALSE);
 	pDevice->SetRenderState(D3DRS_ANTIALIASEDLINEENABLE, (AntiAliased ? TRUE : FALSE));
 
 	pDevice->DrawPrimitiveUP(D3DPT_LINELIST, 2, qV, sizeof(D3DTLVERTEX));
 
 	pDevice->SetRenderState(D3DRS_ANTIALIASEDLINEENABLE, FALSE);
-	pDevice->SetRenderState(D3DRS_ZENABLE, TRUE);
+	//pDevice->SetRenderState(D3DRS_ZENABLE, TRUE);
 	pDevice->SetRenderState(D3DRS_STENCILENABLE, TRUE);
 
-	pDevice->SetPixelShader(oldlShader);
+	//pDevice->SetPixelShader(oldlShader);
 }
 
 
@@ -446,15 +446,6 @@ void DrawPic(IDirect3DDevice9* pDevice, IDirect3DTexture9 *tex, int cx, int cy)
 		position.y = (float)cy-32.0f;
 		position.z = 0.0f;
 
-		pDevice->SetRenderState(D3DRS_ALPHABLENDENABLE, TRUE);
-		pDevice->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_SRCALPHA);
-		pDevice->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA);
-		pDevice->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_SELECTARG1);
-		pDevice->SetTextureStageState(0, D3DTSS_COLORARG1, D3DTA_TEXTURE);
-		pDevice->SetTextureStageState(0, D3DTSS_COLORARG2, D3DTA_DIFFUSE);
-		pDevice->SetFVF(D3DFVF_XYZRHW | D3DFVF_DIFFUSE | D3DFVF_TEX1);
-		pDevice->SetPixelShader(NULL);
-
 		//draw pic
 		pSprite->Begin(D3DXSPRITE_ALPHABLEND);
 		pSprite->Draw(tex, NULL, NULL, &position, 0xFFFFFFFF);
@@ -464,8 +455,8 @@ void DrawPic(IDirect3DDevice9* pDevice, IDirect3DTexture9 *tex, int cx, int cy)
 
 //==========================================================================================================================
 
-IDirect3DPixelShader9* ellipse;
-int DX9CreateEllipseShader(IDirect3DDevice9* pDevice)
+
+int DX9CreateEllipseShader(IDirect3DDevice9* pDevice, IDirect3DPixelShader9 **pShader)
 {
 	char vers[100];
 	char *strshader = "\
@@ -490,22 +481,22 @@ else return float4(0,0,0,0);\
 	UINT V1 = D3DSHADER_VERSION_MAJOR(caps.PixelShaderVersion);
 	UINT V2 = D3DSHADER_VERSION_MINOR(caps.PixelShaderVersion);
 	sprintf(vers, "ps_%d_%d", V1, V2);
-	LPD3DXBUFFER pshader;
-	D3DXCompileShader(strshader, strlen(strshader), 0, 0, "PS", vers, 0, &pshader, 0, 0);
-	if (pshader == NULL)
+	LPD3DXBUFFER pShaderBuf;
+	D3DXCompileShader(strshader, strlen(strshader), 0, 0, "PS", vers, 0, &pShaderBuf, 0, 0);
+	if (pShaderBuf == NULL)
 	{
 		MessageBoxA(0, "pshader == NULL", 0, 0);
 		return 1;
 	}
-	pDevice->CreatePixelShader((DWORD*)pshader->GetBufferPointer(), (IDirect3DPixelShader9**)&ellipse);
-	if (!ellipse)
+	pDevice->CreatePixelShader((DWORD*)pShaderBuf->GetBufferPointer(), pShader);
+	if (!pShader)
 	{
 		MessageBoxA(0, "ellipseshader == NULL", 0, 0);
 		return 2;
 	}
 
 	memset(strshader, 0, strlen(strshader));
-	pshader->Release();
+	pShaderBuf->Release();
 	return 0;
 }
 
@@ -517,7 +508,7 @@ struct VERTEX
 	float tu, tv;
 };
 DWORD FVF = D3DFVF_XYZRHW | D3DFVF_TEX1 | D3DFVF_DIFFUSE;
-
+IDirect3DPixelShader9* ellipse;
 int DX9DrawEllipse(IDirect3DDevice9* pDevice, float x, float y, float w, float h, float linew, DWORD *color)
 {
 
@@ -571,7 +562,7 @@ int DX9DrawEllipse(IDirect3DDevice9* pDevice, float x, float y, float w, float h
 		pDevice->SetPixelShaderConstantF(0, radius, 1);
 		pDevice->SetFVF(FVF);
 		pDevice->SetTexture(0, 0);
-		pDevice->SetPixelShader((IDirect3DPixelShader9*)ellipse);
+		pDevice->SetPixelShader(ellipse);
 		pDevice->SetVertexShader(0);
 		pDevice->SetStreamSource(0, vb, 0, sizeof(VERTEX));
 		pDevice->SetIndices(ib);
