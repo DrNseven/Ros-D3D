@@ -18,8 +18,8 @@
 #endif
 
 //if using ms detours instead of minhook
-//#include "detours.h"
-//#pragma comment(lib, "Detours.lib")
+//#include "detours\detours.h"
+//#pragma comment(lib, "detours/Detours.lib")
 
 //DX Includes
 //#include <DirectXMath.h>
@@ -65,7 +65,10 @@ static BOOL screenshot_taken = FALSE;
 
 //visuals
 int wallhack = 1;				//wallhack
-int esp = 10;					//esp
+int distanceesp = 1;			//distance esp
+int shaderesp = 1;				//shader esp
+int lineesp = 10;				//line esp
+int boxesp = 0;					//box esp
 int picesp = 0;					//pic esp
 int nograss = 1;				//nograss
 int nofog = 1;					//nofog
@@ -461,12 +464,138 @@ void DrawPic(IDirect3DDevice9* pDevice, IDirect3DTexture9 *tex, int cx, int cy)
 
 //==========================================================================================================================
 
+IDirect3DPixelShader9* ellipse;
+int DX9CreateEllipseShader(IDirect3DDevice9* pDevice)
+{
+	char vers[100];
+	char *strshader = "\
+float4 radius: register(c0);\
+sampler mytexture;\
+struct VS_OUTPUT\
+{\
+float4 Pos : SV_POSITION;\
+float4 Color : COLOR;\
+float2 TexCoord : TEXCOORD;\
+};\
+float4 PS(VS_OUTPUT input) : SV_TARGET\
+{\
+if( ( (input.TexCoord[0]-0.5)*(input.TexCoord[0]-0.5) + (input.TexCoord[1]-0.5)*(input.TexCoord[1]-0.5) <= 0.5*0.5) &&\
+( (input.TexCoord[0]-0.5)*(input.TexCoord[0]-0.5) + (input.TexCoord[1]-0.5)*(input.TexCoord[1]-0.5) >= radius[0]*radius[0]) )\
+return input.Color;\
+else return float4(0,0,0,0);\
+};";
+
+	D3DCAPS9 caps;
+	pDevice->GetDeviceCaps(&caps);
+	UINT V1 = D3DSHADER_VERSION_MAJOR(caps.PixelShaderVersion);
+	UINT V2 = D3DSHADER_VERSION_MINOR(caps.PixelShaderVersion);
+	sprintf(vers, "ps_%d_%d", V1, V2);
+	LPD3DXBUFFER pshader;
+	D3DXCompileShader(strshader, strlen(strshader), 0, 0, "PS", vers, 0, &pshader, 0, 0);
+	if (pshader == NULL)
+	{
+		MessageBoxA(0, "pshader == NULL", 0, 0);
+		return 1;
+	}
+	pDevice->CreatePixelShader((DWORD*)pshader->GetBufferPointer(), (IDirect3DPixelShader9**)&ellipse);
+	if (!ellipse)
+	{
+		MessageBoxA(0, "ellipseshader == NULL", 0, 0);
+		return 2;
+	}
+
+	memset(strshader, 0, strlen(strshader));
+	pshader->Release();
+	return 0;
+}
+
+DWORD deffault_color8[] = { 0xffffffff,0xffffffff,0xffffffff,0xffffffff,0xffffffff,0xffffffff,0xffffffff,0xffffffff };
+struct VERTEX
+{
+	float x, y, z, rhw;
+	DWORD color;
+	float tu, tv;
+};
+DWORD FVF = D3DFVF_XYZRHW | D3DFVF_TEX1 | D3DFVF_DIFFUSE;
+
+int DX9DrawEllipse(IDirect3DDevice9* pDevice, float x, float y, float w, float h, float linew, DWORD *color)
+{
+
+	if (!pDevice)return 1;
+	static IDirect3DVertexBuffer9 *vb = 0;
+	static IDirect3DIndexBuffer9 *ib = 0;
+	static IDirect3DSurface9 *surface = 0;
+	static IDirect3DTexture9 *pstexture = 0;
+	if (!vb)
+	{
+		pDevice->CreateVertexBuffer(sizeof(VERTEX) * 4, 0, FVF, D3DPOOL_MANAGED, &vb, NULL);
+		//Log("1");
+		if (!vb)
+		{
+			MessageBoxA(0, "DrawEllipse error vb", 0, 0);
+			return 2;
+		}
+		pDevice->CreateIndexBuffer((3 * 2) * 2, 0, D3DFMT_INDEX16, D3DPOOL_MANAGED, &ib, NULL);
+		if (!ib)
+		{
+			MessageBoxA(0, "DrawEllipse error ib", 0, 0);
+			return 3;
+		}
+
+		//ListAdd(&RES,&vb,0);
+		// ListAdd(&RES,&ib,0);
+	}
+	else
+	{
+		if (!color)color = deffault_color8;
+		float tu = 0, tv = 0;
+		float tw = 1.0, th = 1.0;
+		VERTEX v[4] = { { x,y,0,1,color[0],tu,tv },{ x + w,y,0,1,color[1],tu + tw,tv },{ x + w,y + h,0,1,color[2],tu + tw,tv + th },{ x,y + h,0,1,color[3],tu,tv + th } };
+		WORD i[2 * 3] = { 0,1,2, 2,3,0 };
+		void *p;
+		vb->Lock(0, sizeof(v), &p, 0);
+		memcpy(p, v, sizeof(v));
+		vb->Unlock();
+
+		ib->Lock(0, sizeof(i), &p, 0);
+		memcpy(p, i, sizeof(i));
+		ib->Unlock();
+
+		float radius[4] = { 0,w,h,0 };
+
+		radius[0] = (linew) / w;
+		if (radius[0]>0.5)radius[0] = 0.5;
+		radius[0] = 0.5 - radius[0];
+
+
+		pDevice->SetPixelShaderConstantF(0, radius, 1);
+		pDevice->SetFVF(FVF);
+		pDevice->SetTexture(0, 0);
+		pDevice->SetPixelShader((IDirect3DPixelShader9*)ellipse);
+		pDevice->SetVertexShader(0);
+		pDevice->SetStreamSource(0, vb, 0, sizeof(VERTEX));
+		pDevice->SetIndices(ib);
+
+		pDevice->SetRenderState(D3DRS_STENCILENABLE, FALSE);
+
+		pDevice->DrawIndexedPrimitive(D3DPT_TRIANGLELIST, 0, 0, 4, 0, 2);
+
+		pDevice->SetRenderState(D3DRS_STENCILENABLE, TRUE);
+	}
+	return 0;
+};
+
+//==========================================================================================================================
+
 void SaveCfg()
 {
 	ofstream fout;
 	fout.open(GetDirFile("rosd3d.ini"), ios::trunc);
 	fout << "wallhack " << wallhack << endl;
-	fout << "esp " << esp << endl;
+	fout << "distanceesp " << distanceesp << endl;
+	fout << "shaderesp " << shaderesp << endl;
+	fout << "lineesp " << lineesp << endl;
+	fout << "boxesp " << boxesp << endl;
 	fout << "picesp " << picesp << endl;
 	fout << "aimbot " << aimbot << endl;
 	fout << "aimkey " << aimkey << endl;
@@ -485,7 +614,10 @@ void LoadCfg()
 	string Word = "";
 	fin.open(GetDirFile("rosd3d.ini"), ifstream::in);
 	fin >> Word >> wallhack;
-	fin >> Word >> esp;
+	fin >> Word >> distanceesp;
+	fin >> Word >> shaderesp;
+	fin >> Word >> lineesp;
+	fin >> Word >> boxesp;
 	fin >> Word >> picesp;
 	fin >> Word >> aimbot;
 	fin >> Word >> aimkey;
@@ -668,7 +800,10 @@ void DrawMenu(LPDIRECT3DDEVICE9 pDevice)
 		Current = 1;
 
 		AddItem(pDevice, " Wallhack", wallhack, opt_WhChams, 2);
-		AddItem(pDevice, " Esp", esp, opt_ZeroTen, 10);
+		AddItem(pDevice, " Distance Esp", distanceesp, opt_OnOff, 1);
+		AddItem(pDevice, " Shader Esp", shaderesp, opt_OnOff, 1);
+		AddItem(pDevice, " Line Esp", lineesp, opt_ZeroTen, 10);
+		AddItem(pDevice, " Box Esp", boxesp, opt_OnOff, 1);
 		AddItem(pDevice, " Pic Esp", picesp, opt_OnOff, 1);
 		AddItem(pDevice, " Aimbot", aimbot, opt_OnOff, 1);
 		AddItem(pDevice, " Aimkey", aimkey, opt_Keys, 8);
@@ -683,7 +818,7 @@ void DrawMenu(LPDIRECT3DDEVICE9 pDevice)
 			menuselect = 1;
 
 		if (menuselect < 1)
-			menuselect = 11;//Current;
+			menuselect = 14;//Current;
 	}
 }
 

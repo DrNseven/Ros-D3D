@@ -1,5 +1,5 @@
 /*
-* Ros D3D 1.2b by n7
+* Ros D3D 1.2c by n7
 How to compile:
 - compile with visual studio community 2017 (..\Microsoft Visual Studio\2017\Community\Common7\IDE\devenv.exe)
 - select Release x86
@@ -97,6 +97,8 @@ HRESULT APIENTRY SetTexture_hook(LPDIRECT3DDEVICE9 pDevice, DWORD Sampler, IDire
 		ScreenCX = (float)Viewport.Width / 2.0f;
 		ScreenCY = (float)Viewport.Height / 2.0f;
 
+		DX9CreateEllipseShader(pDevice);
+
 		//GenerateTexture(pDevice, &Red, D3DCOLOR_ARGB(255, 255, 0, 0));
 		//GenerateTexture(pDevice, &Green, D3DCOLOR_RGBA(0, 255, 0, 255));
 		//GenerateTexture(pDevice, &Blue, D3DCOLOR_ARGB(255, 0, 0, 255));
@@ -137,7 +139,7 @@ HRESULT APIENTRY SetTexture_hook(LPDIRECT3DDEVICE9 pDevice, DWORD Sampler, IDire
 	}
 
 	//worldtoscreen weapons in hand
-	if (aimbot == 1 || esp > 0|| picesp == 1)
+	if (aimbot == 1||distanceesp == 1||shaderesp == 1||lineesp > 0||boxesp==1||picesp == 1)
 	{
 		if ((Stride == 48 && vSize > 1328) || (vSize == 2356 || vSize == 2008 || vSize == 1552))//1040crap,1328crap
 		//if (Stride == 48 || vSize == 2008 || vSize == 1552)
@@ -214,7 +216,7 @@ HRESULT APIENTRY Present_hook(IDirect3DDevice9* pDevice, const RECT *pSourceRect
 
 	//draw background
 	if (ShowMenu)
-		DrawBox(pDevice, 71.0f, 86.0f, 200.0f, 180.0f, D3DCOLOR_ARGB(120, 30, 200, 200));//200 = left/right, 180 = up/down
+		DrawBox(pDevice, 71.0f, 86.0f, 200.0f, 220.0f, D3DCOLOR_ARGB(120, 30, 200, 200));//200 = left/right, 220 = up/down
 
 	//draw menu
 	if (Font)
@@ -246,22 +248,11 @@ HRESULT APIENTRY Present_hook(IDirect3DDevice9* pDevice, const RECT *pSourceRect
 	if (aimkey == 8) Daimkey = 0x43; //C
 
 
-	//do esp
-	if (esp > 0 && WeaponEspInfo.size() != NULL)
+	//do distance esp
+	if (distanceesp > 0 && WeaponEspInfo.size() != NULL)
 	{
 		for (unsigned int i = 0; i < WeaponEspInfo.size(); i++)
 		{
-			//box esp
-			if (WeaponEspInfo[i].pOutX > 1.0f && WeaponEspInfo[i].pOutY > 1.0f && (float)WeaponEspInfo[i].RealDistance > 4.0f)
-				DrawCornerBox(pDevice, (int)WeaponEspInfo[i].pOutX+2, (int)WeaponEspInfo[i].pOutY + 2 + 20, 20, 30, 1, D3DCOLOR_ARGB(255, 255, 255, 255));
-
-			//line esp
-			if (WeaponEspInfo[i].pOutX > 1.0f && WeaponEspInfo[i].pOutY > 1.0f && (float)WeaponEspInfo[i].RealDistance > 4.0f)//&& (float)WeaponEspInfo[i].vSizeod == 2008)//long range weapon
-				DrawLine(pDevice, (int)WeaponEspInfo[i].pOutX, (int)WeaponEspInfo[i].pOutY, ScreenCX, ScreenCY * ((float)esp * 0.2f), 1, D3DCOLOR_ARGB(255, 255, 255, 255), 0);//0.1up, 1.0middle, 2.0down
-				//DrawLine2(pDevice, (int)WeaponEspInfo[i].pOutX, (int)WeaponEspInfo[i].pOutY, ScreenCX, ScreenCY * ((float)esp * 0.2f), 1, D3DCOLOR_ARGB(255, 255, 255, 255));
-				//DrawLine3(pDevice, D3DCOLOR_ARGB(255, 255, 255, 255), (int)WeaponEspInfo[i].pOutX, (int)WeaponEspInfo[i].pOutY, 1);//no
-
-			//distance esp
 			if (WeaponEspInfo[i].pOutX > 1.0f && WeaponEspInfo[i].pOutY > 1.0f && (float)WeaponEspInfo[i].RealDistance > 4.0f && (float)WeaponEspInfo[i].RealDistance <= 200.0f) // 4 - 200 yellow
 				DrawCenteredString(Font, (int)WeaponEspInfo[i].pOutX, (int)WeaponEspInfo[i].pOutY - 20.0f, D3DCOLOR_ARGB(255, 255, 255, 0), "%.f", (float)WeaponEspInfo[i].RealDistance);
 			else if (WeaponEspInfo[i].pOutX > 1.0f && WeaponEspInfo[i].pOutY > 1.0f && (float)WeaponEspInfo[i].RealDistance > 200.0f && (float)WeaponEspInfo[i].RealDistance <= 1000.0f) //200 - 1000 white
@@ -271,11 +262,46 @@ HRESULT APIENTRY Present_hook(IDirect3DDevice9* pDevice, const RECT *pSourceRect
 		}
 	}
 
+	//do shader esp
+	if (shaderesp > 0 && WeaponEspInfo.size() != NULL)
+	{
+		for (unsigned int i = 0; i < WeaponEspInfo.size(); i++)
+		{
+			DWORD col[4] = { 0xffffffff,0xffffffff,0xffffffff,0xffffffff };//white
+			//DWORD col[4] = { 0xffff0000,0xffff0000,0xffff0000,0xffff0000 };//gradient color (red)
+			if (WeaponEspInfo[i].pOutX > 1.0f && WeaponEspInfo[i].pOutY > 1.0f && (float)WeaponEspInfo[i].RealDistance > 4.0f)
+				DX9DrawEllipse(pDevice, (int)WeaponEspInfo[i].pOutX-6, (int)WeaponEspInfo[i].pOutY-8, 16, 32, 1, col);//-8 or -9
+		}
+	}
+
+	//do line esp
+	if (lineesp > 0 && WeaponEspInfo.size() != NULL)
+	{
+		for (unsigned int i = 0; i < WeaponEspInfo.size(); i++)
+		{
+			if (WeaponEspInfo[i].pOutX > 1.0f && WeaponEspInfo[i].pOutY > 1.0f && (float)WeaponEspInfo[i].RealDistance > 4.0f)//&& (float)WeaponEspInfo[i].vSizeod == 2008)//long range weapon
+				DrawLine(pDevice, (int)WeaponEspInfo[i].pOutX, (int)WeaponEspInfo[i].pOutY, ScreenCX, ScreenCY * ((float)lineesp * 0.2f), 1, D3DCOLOR_ARGB(255, 255, 255, 255), 0);//0.1up, 1.0middle, 2.0down
+				//DrawLine2(pDevice, (int)WeaponEspInfo[i].pOutX, (int)WeaponEspInfo[i].pOutY, ScreenCX, ScreenCY * ((float)esp * 0.2f), 1, D3DCOLOR_ARGB(255, 255, 255, 255));
+				//DrawLine3(pDevice, D3DCOLOR_ARGB(255, 255, 255, 255), (int)WeaponEspInfo[i].pOutX, (int)WeaponEspInfo[i].pOutY, 1);//no
+		}
+	}
+
+	//do box esp
+	if (boxesp > 0 && WeaponEspInfo.size() != NULL)
+	{
+		for (unsigned int i = 0; i < WeaponEspInfo.size(); i++)
+		{
+			//box esp
+			if (WeaponEspInfo[i].pOutX > 1.0f && WeaponEspInfo[i].pOutY > 1.0f && (float)WeaponEspInfo[i].RealDistance > 4.0f)
+				DrawCornerBox(pDevice, (int)WeaponEspInfo[i].pOutX + 2, (int)WeaponEspInfo[i].pOutY + 2 + 20, 20, 30, 1, D3DCOLOR_ARGB(255, 255, 255, 255));
+		}
+	}
+
+	//do pic esp
 	if (picesp == 1 && WeaponEspInfo.size() != NULL)
 	{
 		for (unsigned int i = 0; i < WeaponEspInfo.size(); i++)
 		{
-			//pic esp
 			if (WeaponEspInfo[i].pOutX > 1.0f && WeaponEspInfo[i].pOutY > 1.0f && (float)WeaponEspInfo[i].RealDistance > 4.0f)
 				DrawPic(pDevice, pSpriteTextureImage, (int)WeaponEspInfo[i].pOutX, (int)WeaponEspInfo[i].pOutY);
 		}
@@ -418,24 +444,6 @@ HANDLE WINAPI Routed_CreateFile(LPCWSTR lpFileName, DWORD dwDesiredAccess, DWORD
 
 //==========================================================================================================================
 
-typedef WINBASEAPI VOID (WINAPI	*GETLocalTime_t)(__out LPSYSTEMTIME lpSystemTime);
-GETLocalTime_t GETLocalTime_orig = 0;
-VOID WINAPI Hooked_GETLocalTime(__out LPSYSTEMTIME pTime)
-{
-	//loclTimeFun(pTime);//
-	Log("1pTime == %d", pTime);
-	//pTime->wYear = 2014;
-	//pTime->wMonth = 8;
-	//pTime->wDayOfWeek = 6;
-	//pTime->wDay = 1;
-	//pTime->wHour = 16;
-	//pTime->wMinute = 24;
-	//return;
-	return GETLocalTime_orig(pTime);
-}
-
-//==========================================================================================================================
-
 typedef WINBASEAPI VOID (WINAPI* GETSystemTimeAsFileTime_t)(__out LPFILETIME lpSystemTimeAsFileTime);
 GETSystemTimeAsFileTime_t GETSystemTimeAsFileTime_orig = 0;
 VOID WINAPI Hooked_GETSystemTimeAsFileTime(__out LPFILETIME pTime)
@@ -526,7 +534,8 @@ DWORD WINAPI RosD3D(__in LPVOID lpParameter)
 	DetourAttach(&(PVOID&)Real_CreateFile, Routed_CreateFile);
 	DetourTransactionCommit();
 	*/
-
+	
+	
 	// Detour functions x86 & x64
 	if (MH_Initialize() != MH_OK) { return 1; }
 	if (MH_CreateHook((DWORD_PTR*)dVtable[17], &Present_hook, reinterpret_cast<void**>(&Present_orig)) != MH_OK) { return 1; }
