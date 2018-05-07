@@ -97,7 +97,7 @@ HRESULT APIENTRY SetTexture_hook(LPDIRECT3DDEVICE9 pDevice, DWORD Sampler, IDire
 		ScreenCX = (float)Viewport.Width / 2.0f;
 		ScreenCY = (float)Viewport.Height / 2.0f;
 
-		DX9CreateEllipseShader(pDevice, &ellipse);
+		//DX9CreateEllipseShader(pDevice, &ellipse);
 
 		//GenerateTexture(pDevice, &Red, D3DCOLOR_ARGB(255, 255, 0, 0));
 		//GenerateTexture(pDevice, &Green, D3DCOLOR_RGBA(0, 255, 0, 255));
@@ -267,10 +267,10 @@ HRESULT APIENTRY Present_hook(IDirect3DDevice9* pDevice, const RECT *pSourceRect
 	{
 		for (unsigned int i = 0; i < WeaponEspInfo.size(); i++)
 		{
-			DWORD col[4] = { 0xffffffff,0xffffffff,0xffffffff,0xffffffff };//white
+			//DWORD col[4] = { 0xffffffff,0xffffffff,0xffffffff,0xffffffff };//white
 			//DWORD col[4] = { 0xffff0000,0xffff0000,0xffff0000,0xffff0000 };//gradient color (red)
-			if (WeaponEspInfo[i].pOutX > 1.0f && WeaponEspInfo[i].pOutY > 1.0f && (float)WeaponEspInfo[i].RealDistance > 4.0f)
-				DX9DrawEllipse(pDevice, (int)WeaponEspInfo[i].pOutX-6, (int)WeaponEspInfo[i].pOutY-8, 16, 32, 1, col);//-8 or -9
+			//if (WeaponEspInfo[i].pOutX > 1.0f && WeaponEspInfo[i].pOutY > 1.0f && (float)WeaponEspInfo[i].RealDistance > 4.0f)
+				//DX9DrawEllipse(pDevice, (int)WeaponEspInfo[i].pOutX-6, (int)WeaponEspInfo[i].pOutY-8, 16, 32, 1, col);//-8 or -9
 		}
 	}
 

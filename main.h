@@ -792,7 +792,7 @@ void DrawMenu(LPDIRECT3DDEVICE9 pDevice)
 
 		AddItem(pDevice, " Wallhack", wallhack, opt_WhChams, 2);
 		AddItem(pDevice, " Distance Esp", distanceesp, opt_OnOff, 1);
-		AddItem(pDevice, " Shader Esp", shaderesp, opt_OnOff, 1);
+		AddItem(pDevice, " Not Available", shaderesp, opt_OnOff, 1);
 		AddItem(pDevice, " Line Esp", lineesp, opt_ZeroTen, 10);
 		AddItem(pDevice, " Box Esp", boxesp, opt_OnOff, 1);
 		AddItem(pDevice, " Pic Esp", picesp, opt_OnOff, 1);
