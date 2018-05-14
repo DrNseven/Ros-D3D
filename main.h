@@ -1,15 +1,16 @@
 #include <windows.h>
-#include <sysinfoapi.h>
 #include <fstream>
 #include <string>
 #include <vector>
 #include <d3d9.h>
 #pragma comment(lib, "d3d9.lib")
-#pragma comment(lib, "winmm.lib")
+#pragma comment(lib, "winmm.lib")//time
 
 //dx sdk 
 //#include <d3dx9.h"
 //#pragma comment(lib, "d3dx9.lib")
+
+//dx sdk if files are in ..\DXSDK dir
 #include "DXSDK\d3dx9.h"
 #if defined _M_X64
 #pragma comment(lib, "DXSDK/x64/d3dx9.lib") 
@@ -17,18 +18,19 @@
 #pragma comment(lib, "DXSDK/x86/d3dx9.lib")
 #endif
 
-//if using ms detours instead of minhook
+//if using ms detours
 //#include "detours\detours.h"
 //#pragma comment(lib, "detours/Detours.lib")
 
-//DX Includes
+//if using DX Includes
 //#include <DirectXMath.h>
 //using namespace DirectX;
 
+//if using minhook where files are in MinHook dir
 #include "MinHook/include/MinHook.h" //detour
 using namespace std;
 
-#pragma warning (disable: 4244) //
+#pragma warning (disable: 4244) 
 #pragma warning (disable: 4996)
 #define _CRT_SECURE_NO_DEPRECATE
 
@@ -146,7 +148,7 @@ float GetDistance(float Xx, float Yy, float xX, float yY)
 
 struct WeaponEspInfo_t
 {
-	float pOutX, pOutY, RealDistance, vSizeod;
+	float pOutX, pOutY, RealDistance, pOut2X, pOut2Y, vSize;
 	float CrosshairDistance;
 };
 std::vector<WeaponEspInfo_t>WeaponEspInfo;
@@ -157,29 +159,68 @@ void AddWeapons(LPDIRECT3DDEVICE9 Device)
 	D3DXMATRIX matrix;
 	Device->GetVertexShaderConstantF(13, matrix, 4);
 
-	D3DXVECTOR3 pOut, pIn(0, (float)aimheight, 0);//-3?
+	D3DXVECTOR3 pOut, pOut2, pIn(0.0f, (float)aimheight, 0.0f), pIn2(0, (float)aimheight, 75.0f);//esp 1 line length
 	float distance = pIn.x * matrix._14 + pIn.y * matrix._24 + pIn.z * matrix._34 + matrix._44;
 	D3DXVec3TransformCoord(&pOut, &pIn, &matrix);
+	D3DXVec3TransformCoord(&pOut2, &pIn2, &matrix);
 
 	pOut.x = Viewport.X + (1.0f + pOut.x) *Viewport.Width / 2.0f;
 	pOut.y = Viewport.Y + (1.0f - pOut.y) *Viewport.Height / 2.0f;
 
-	float xx, yy;
+	float x1, y1;
 	if (pOut.x > 0.0f && pOut.y > 0.0f && pOut.x < Viewport.Width && pOut.y < Viewport.Height)
 	{
-		xx = pOut.x;
-		yy = pOut.y;
+		x1 = pOut.x;
+		y1 = pOut.y;
 	}
 	else
 	{
-		xx = -1.0f;
-		yy = -1.0f;
+		x1 = -1.0f;
+		y1 = -1.0f;
 	}
-	WeaponEspInfo_t pWeaponEspInfo = { static_cast<float>(xx), static_cast<float>(yy), static_cast<float>(distance*0.1f), static_cast<float>(vSize) };
+
+	pOut2.x = Viewport.X + (1.0f + pOut2.x) *Viewport.Width / 2.0f;
+	pOut2.y = Viewport.Y + (1.0f - pOut2.y) *Viewport.Height / 2.0f;
+
+	float x2, y2;
+	if (pOut2.x > 0.0f && pOut2.y > 0.0f && pOut2.x < Viewport.Width && pOut2.y < Viewport.Height)
+	{
+		x2 = pOut2.x;
+		y2 = pOut2.y;
+	}
+	else
+	{
+		x2 = -1.0f;
+		y2 = -1.0f;
+	}
+
+	WeaponEspInfo_t pWeaponEspInfo = { static_cast<float>(x1), static_cast<float>(y1), static_cast<float>(distance*0.1f), static_cast<float>(x2), static_cast<float>(y2), static_cast<float>(vSize) };
 	WeaponEspInfo.push_back(pWeaponEspInfo);
 }
 
 //==========================================================================================================================
+
+HRESULT GenerateTexture(IDirect3DDevice9 *pDevice, IDirect3DTexture9 **ppD3Dtex, DWORD colour32)
+{
+	if (FAILED(pDevice->CreateTexture(8, 8, 1, 0, D3DFMT_A4R4G4B4, D3DPOOL_MANAGED, ppD3Dtex, NULL)))
+		return E_FAIL;
+
+	WORD colour16 = ((WORD)((colour32 >> 28) & 0xF) << 12)
+		| (WORD)(((colour32 >> 20) & 0xF) << 8)
+		| (WORD)(((colour32 >> 12) & 0xF) << 4)
+		| (WORD)(((colour32 >> 4) & 0xF) << 0);
+
+	D3DLOCKED_RECT d3dlr;
+	(*ppD3Dtex)->LockRect(0, &d3dlr, 0, 0);
+	WORD *pDst16 = (WORD*)d3dlr.pBits;
+
+	for (int xy = 0; xy < 8 * 8; xy++)
+		*pDst16++ = colour16;
+
+	(*ppD3Dtex)->UnlockRect(0);
+
+	return S_OK;
+}
 
 //IDirect3DPixelShader9* oldsShader;
 void DrawBox(IDirect3DDevice9 *pDevice, float x, float y, float w, float h, D3DCOLOR Color)
@@ -240,78 +281,6 @@ void DrawCornerBox(LPDIRECT3DDEVICE9 Device, int x, int y, int w, int h, int bor
 	DrawP(Device, (x + w - borderPx) - (w / 2), (y - h + borderPx) + h - w / 3, borderPx, w / 3, borderColor);//right 
 }
 
-HRESULT DrawString(LPD3DXFONT Font, INT X, INT Y, DWORD dColor, CONST PCHAR cString, ...)
-{
-	HRESULT hRet;
-
-	CHAR buf[512] = { NULL };
-	va_list ArgumentList;
-	va_start(ArgumentList, cString);
-	_vsnprintf_s(buf, sizeof(buf), sizeof(buf) - strlen(buf), cString, ArgumentList);
-	va_end(ArgumentList);
-
-	RECT rc[2];
-	SetRect(&rc[0], X, Y, X, 0);
-	SetRect(&rc[1], X, Y, X + 50, 50);
-
-	hRet = D3D_OK;
-
-	if (SUCCEEDED(hRet))
-	{
-		Font->DrawTextA(NULL, buf, -1, &rc[0], DT_NOCLIP, 0xFF000000);
-		hRet = Font->DrawTextA(NULL, buf, -1, &rc[1], DT_NOCLIP, dColor);
-	}
-
-	return hRet;
-}
-
-HRESULT DrawCenteredString(LPD3DXFONT Font, INT X, INT Y, DWORD dColor, CONST PCHAR cString, ...)
-{
-	HRESULT hRet;
-
-	CHAR buf[512] = { NULL };
-	va_list ArgumentList;
-	va_start(ArgumentList, cString);
-	_vsnprintf_s(buf, sizeof(buf), sizeof(buf) - strlen(buf), cString, ArgumentList);
-	va_end(ArgumentList);
-
-	RECT rc[2];
-	SetRect(&rc[0], X, Y, X, 0);
-	SetRect(&rc[1], X, Y, X + 2, 2);
-
-	hRet = D3D_OK;
-
-	if (SUCCEEDED(hRet))
-	{
-		Font->DrawTextA(NULL, buf, -1, &rc[0], DT_NOCLIP | DT_CENTER, 0xFF000000);
-		hRet = Font->DrawTextA(NULL, buf, -1, &rc[1], DT_NOCLIP | DT_CENTER, dColor);
-	}
-
-	return hRet;
-}
-
-HRESULT GenerateTexture(IDirect3DDevice9 *pDevice, IDirect3DTexture9 **ppD3Dtex, DWORD colour32)
-{
-	if (FAILED(pDevice->CreateTexture(8, 8, 1, 0, D3DFMT_A4R4G4B4, D3DPOOL_MANAGED, ppD3Dtex, NULL)))
-		return E_FAIL;
-
-	WORD colour16 = ((WORD)((colour32 >> 28) & 0xF) << 12)
-		| (WORD)(((colour32 >> 20) & 0xF) << 8)
-		| (WORD)(((colour32 >> 12) & 0xF) << 4)
-		| (WORD)(((colour32 >> 4) & 0xF) << 0);
-
-	D3DLOCKED_RECT d3dlr;
-	(*ppD3Dtex)->LockRect(0, &d3dlr, 0, 0);
-	WORD *pDst16 = (WORD*)d3dlr.pBits;
-
-	for (int xy = 0; xy < 8 * 8; xy++)
-		*pDst16++ = colour16;
-
-	(*ppD3Dtex)->UnlockRect(0);
-
-	return S_OK;
-}
-
 class D3DTLVERTEX
 {
 public:
@@ -349,7 +318,6 @@ void DrawLine(IDirect3DDevice9* pDevice, float X, float Y, float X2, float Y2, f
 	//pDevice->SetPixelShader(oldlShader);
 }
 
-
 LPD3DXLINE pLine;
 VOID DrawLine2(IDirect3DDevice9* pDevice, FLOAT startx, FLOAT starty, FLOAT endx, FLOAT endy, FLOAT width, D3DCOLOR dColor)
 {
@@ -379,6 +347,7 @@ VOID DrawLine2(IDirect3DDevice9* pDevice, FLOAT startx, FLOAT starty, FLOAT endx
 
 //=====================================================================================================================
  
+// draw sprite
 LPD3DXSPRITE pSprite = NULL; 
 LPDIRECT3DTEXTURE9 pSpriteTextureImage = NULL;
 bool SpriteCreated = false;
@@ -455,7 +424,7 @@ void DrawPic(IDirect3DDevice9* pDevice, IDirect3DTexture9 *tex, int cx, int cy)
 
 //==========================================================================================================================
 
-
+//draw shader
 int DX9CreateEllipseShader(IDirect3DDevice9* pDevice, IDirect3DPixelShader9 **pShader)
 {
 	char vers[100];
@@ -624,6 +593,55 @@ void LoadCfg()
 //==========================================================================================================================
 
 // menu stuff
+HRESULT DrawString(LPD3DXFONT Font, INT X, INT Y, DWORD dColor, CONST PCHAR cString, ...)
+{
+	HRESULT hRet;
+
+	CHAR buf[512] = { NULL };
+	va_list ArgumentList;
+	va_start(ArgumentList, cString);
+	_vsnprintf_s(buf, sizeof(buf), sizeof(buf) - strlen(buf), cString, ArgumentList);
+	va_end(ArgumentList);
+
+	RECT rc[2];
+	SetRect(&rc[0], X, Y, X, 0);
+	SetRect(&rc[1], X, Y, X + 50, 50);
+
+	hRet = D3D_OK;
+
+	if (SUCCEEDED(hRet))
+	{
+		Font->DrawTextA(NULL, buf, -1, &rc[0], DT_NOCLIP, 0xFF000000);
+		hRet = Font->DrawTextA(NULL, buf, -1, &rc[1], DT_NOCLIP, dColor);
+	}
+
+	return hRet;
+}
+
+HRESULT DrawCenteredString(LPD3DXFONT Font, INT X, INT Y, DWORD dColor, CONST PCHAR cString, ...)
+{
+	HRESULT hRet;
+
+	CHAR buf[512] = { NULL };
+	va_list ArgumentList;
+	va_start(ArgumentList, cString);
+	_vsnprintf_s(buf, sizeof(buf), sizeof(buf) - strlen(buf), cString, ArgumentList);
+	va_end(ArgumentList);
+
+	RECT rc[2];
+	SetRect(&rc[0], X, Y, X, 0);
+	SetRect(&rc[1], X, Y, X + 2, 2);
+
+	hRet = D3D_OK;
+
+	if (SUCCEEDED(hRet))
+	{
+		Font->DrawTextA(NULL, buf, -1, &rc[0], DT_NOCLIP | DT_CENTER, 0xFF000000);
+		hRet = Font->DrawTextA(NULL, buf, -1, &rc[1], DT_NOCLIP | DT_CENTER, dColor);
+	}
+
+	return hRet;
+}
 
 int menuselect = 0;
 int Current = true;
@@ -634,8 +652,6 @@ int PosY = 27;
 int ShowMenu = false; //off by default
 
 POINT Pos;
-
-//LPD3DXFONT Font; //font
 
 int CheckTab(int x, int y, int w, int h)
 {
@@ -699,12 +715,12 @@ void AddItem(LPDIRECT3DDEVICE9 pDevice, char *text, int &var, char **opt, int Ma
 
 		if (var)
 		{
-			//DrawBox(pDevice, PosX+44, PosY+51 + (Current * 15), 10, 10, Green);
+			//DrawBox(pDevice, PosX+44, PosY+51 + (Current * 15), 10, 10, D3DCOLOR_ARGB(255, 0, 255, 0));
 			ColorText = D3DCOLOR_ARGB(255, 0, 255, 0);
 		}
 		if (var == 0)
 		{
-			//DrawBox(pDevice, PosX+44, PosY+51 + (Current * 15), 10, 10, Red);
+			//DrawBox(pDevice, PosX+44, PosY+51 + (Current * 15), 10, 10, D3DCOLOR_ARGB(255, 255, 0, 0));
 			ColorText = D3DCOLOR_ARGB(255, 255, 0, 0);
 		}
 
@@ -756,7 +772,7 @@ void AddItem(LPDIRECT3DDEVICE9 pDevice, char *text, int &var, char **opt, int Ma
 // menu part
 char *opt_OnOff[] = { "[OFF]", "[On]" };
 char *opt_WhChams[] = { "[OFF]", "[On]", "[Color]" };
-char *opt_ZeroTen[] = { "[0]", "[1]", "[2]", "[3]", "[4]", "[5]", "[6]", "[7]", "[8]", "[9]", "[10]" };
+char *opt_ZeroTen[] = { "[0]", "[1]", "[2]", "[3]", "[4]", "[5]", "[6]", "[7]", "[8]", "[9]", "[10]", "[11]" };
 char *opt_Keys[] = { "[OFF]", "[Shift]", "[RMouse]", "[LMouse]", "[Ctrl]", "[Alt]", "[Space]", "[X]", "[C]" };
 char *opt_aimfov[] = { "[0]", "[5%]", "[10%]", "[15%]", "[20%]", "[25%]", "[30%]", "[35%]", "[40%]", "[45%]" };
 char *opt_autoshoot[] = { "[OFF]", "[OnKeyDown]" };
@@ -775,14 +791,14 @@ void DrawMenu(LPDIRECT3DDEVICE9 pDevice)
 	if (ShowMenu)
 	{
 		static int lasttick_up = GetTickCount64();
-		if (GetAsyncKeyState(VK_UP) && GetTickCount64() - lasttick_up > 75)
+		if (GetAsyncKeyState(VK_UP) && GetTickCount64() - lasttick_up > 100)
 		{
 			lasttick_up = GetTickCount64();
 			menuselect--;
 		}
 
 		static int lasttick_down = GetTickCount64();
-		if (GetAsyncKeyState(VK_DOWN) && GetTickCount64() - lasttick_down > 75)
+		if (GetAsyncKeyState(VK_DOWN) && GetTickCount64() - lasttick_down > 100)
 		{
 			lasttick_down = GetTickCount64();
 			menuselect++;
@@ -790,20 +806,20 @@ void DrawMenu(LPDIRECT3DDEVICE9 pDevice)
 
 		Current = 1;
 
-		AddItem(pDevice, " Wallhack", wallhack, opt_WhChams, 2);
-		AddItem(pDevice, " Distance Esp", distanceesp, opt_OnOff, 1);
-		AddItem(pDevice, " Not Available", shaderesp, opt_OnOff, 1);
-		AddItem(pDevice, " Line Esp", lineesp, opt_ZeroTen, 10);
-		AddItem(pDevice, " Box Esp", boxesp, opt_OnOff, 1);
-		AddItem(pDevice, " Pic Esp", picesp, opt_OnOff, 1);
-		AddItem(pDevice, " Aimbot", aimbot, opt_OnOff, 1);
-		AddItem(pDevice, " Aimkey", aimkey, opt_Keys, 8);
-		AddItem(pDevice, " Aimsens", aimsens, opt_ZeroTen, 10);
-		AddItem(pDevice, " Aimfov", aimfov, opt_aimfov, 9);
-		AddItem(pDevice, " Aimheight", aimheight, opt_ZeroTen, 5);
-		AddItem(pDevice, " Autoshoot", autoshoot, opt_autoshoot, 1);
-		AddItem(pDevice, " No Grass", nograss, opt_OnOff, 1);
-		AddItem(pDevice, " No Fog", nofog, opt_OnOff, 1);
+		AddItem(pDevice, "Wallhack", wallhack, opt_WhChams, 2);
+		AddItem(pDevice, "Distance Esp", distanceesp, opt_OnOff, 1);
+		AddItem(pDevice, "Not Available", shaderesp, opt_OnOff, 1);
+		AddItem(pDevice, "Line Esp", lineesp, opt_ZeroTen, 11);
+		AddItem(pDevice, "Box Esp", boxesp, opt_OnOff, 1);
+		AddItem(pDevice, "Pic Esp", picesp, opt_OnOff, 1);
+		AddItem(pDevice, "Aimbot", aimbot, opt_OnOff, 1);
+		AddItem(pDevice, "Aimkey", aimkey, opt_Keys, 8);
+		AddItem(pDevice, "Aimsens", aimsens, opt_ZeroTen, 10);
+		AddItem(pDevice, "Aimfov", aimfov, opt_aimfov, 9);
+		AddItem(pDevice, "Aimheight", aimheight, opt_ZeroTen, 5);
+		AddItem(pDevice, "Autoshoot", autoshoot, opt_autoshoot, 1);
+		AddItem(pDevice, "No Grass", nograss, opt_OnOff, 1);
+		AddItem(pDevice, "No Fog", nofog, opt_OnOff, 1);
 
 		if (menuselect >= Current)
 			menuselect = 1;

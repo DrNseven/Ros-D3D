@@ -1,5 +1,5 @@
 /*
-* Ros D3D 1.2c by n7
+* Ros D3D 1.3 by n7
 How to compile:
 - compile with visual studio community 2017 (..\Microsoft Visual Studio\2017\Community\Common7\IDE\devenv.exe)
 - select Release x86
@@ -97,7 +97,7 @@ HRESULT APIENTRY SetTexture_hook(LPDIRECT3DDEVICE9 pDevice, DWORD Sampler, IDire
 		ScreenCX = (float)Viewport.Width / 2.0f;
 		ScreenCY = (float)Viewport.Height / 2.0f;
 
-		//DX9CreateEllipseShader(pDevice, &ellipse);
+		DX9CreateEllipseShader(pDevice, &ellipse);
 
 		//GenerateTexture(pDevice, &Red, D3DCOLOR_ARGB(255, 255, 0, 0));
 		//GenerateTexture(pDevice, &Green, D3DCOLOR_RGBA(0, 255, 0, 255));
@@ -121,7 +121,6 @@ HRESULT APIENTRY SetTexture_hook(LPDIRECT3DDEVICE9 pDevice, DWORD Sampler, IDire
 	{
 		pDevice->SetRenderState(D3DRS_DEPTHBIAS, 0);
 		if ((vSize == 2356 || vSize == 900 ||vSize == 2008 || vSize == 640) || (Stride == 36 && vSize == 1436) || (Stride == 48 && vSize == 1436))
-		//if (vSize == 2008|| vSize == 2356|| vSize == 640 || vSize == 1436)
 		{
 			if (wallhack == 2 && vSize != 1436)
 			{
@@ -142,7 +141,6 @@ HRESULT APIENTRY SetTexture_hook(LPDIRECT3DDEVICE9 pDevice, DWORD Sampler, IDire
 	if (aimbot == 1||distanceesp == 1||shaderesp == 1||lineesp > 0||boxesp==1||picesp == 1)
 	{
 		if ((Stride == 48 && vSize > 1328) || (vSize == 2356 || vSize == 2008 || vSize == 1552))//1040crap,1328crap
-		//if (Stride == 48 || vSize == 2008 || vSize == 1552)
 			AddWeapons(pDevice);
 	}
 
@@ -150,7 +148,7 @@ HRESULT APIENTRY SetTexture_hook(LPDIRECT3DDEVICE9 pDevice, DWORD Sampler, IDire
 	if (nograss == 1)
 	{
 		pDevice->SetRenderState(D3DRS_FILLMODE, D3DFILL_SOLID);
-		if (vSize == 1660 || vSize == 1704)//grass
+		if (Stride == 32 && vSize == 1660|| Stride == 36 && vSize == 1660 ||Stride == 32 && vSize == 1704|| Stride == 36 && vSize == 1704)//grass
 		{
 			pDevice->SetRenderState(D3DRS_FILLMODE, D3DFILL_POINT);
 		}
@@ -194,6 +192,17 @@ HRESULT APIENTRY SetTexture_hook(LPDIRECT3DDEVICE9 pDevice, DWORD Sampler, IDire
 
 HRESULT APIENTRY Present_hook(IDirect3DDevice9* pDevice, const RECT *pSourceRect, const RECT *pDestRect, HWND hDestWindowOverride, const RGNDATA *pDirtyRegion)
 {
+	//if (GetAsyncKeyState(VK_F10) & 1) //log
+		//Log("pSourceRect == %d && pDestRect == %d && hDestWindowOverride == %d && pDirtyRegion == %d", pSourceRect, pDestRect, hDestWindowOverride, pDirtyRegion);
+
+	if(pSourceRect != 0 || pDestRect != 0)
+	{
+		wallhack = 0;
+		nograss = 0;
+		nofog = 0;
+		Log("pSourceRect == %d && pDestRect == %d && hDestWindowOverride == %d && pDirtyRegion == %d", pSourceRect, pDestRect, hDestWindowOverride, pDirtyRegion);
+	}
+
 	if (GetAsyncKeyState(VK_ESCAPE) & 1||GetAsyncKeyState(VK_INSERT))
 	{
 		//get viewport
@@ -268,9 +277,9 @@ HRESULT APIENTRY Present_hook(IDirect3DDevice9* pDevice, const RECT *pSourceRect
 		for (unsigned int i = 0; i < WeaponEspInfo.size(); i++)
 		{
 			//DWORD col[4] = { 0xffffffff,0xffffffff,0xffffffff,0xffffffff };//white
-			//DWORD col[4] = { 0xffff0000,0xffff0000,0xffff0000,0xffff0000 };//gradient color (red)
-			//if (WeaponEspInfo[i].pOutX > 1.0f && WeaponEspInfo[i].pOutY > 1.0f && (float)WeaponEspInfo[i].RealDistance > 4.0f)
-				//DX9DrawEllipse(pDevice, (int)WeaponEspInfo[i].pOutX-6, (int)WeaponEspInfo[i].pOutY-8, 16, 32, 1, col);//-8 or -9
+			DWORD col[4] = { 0xffff0000,0xffff0000,0xffff0000,0xffff0000 };//gradient color (red)
+			if (WeaponEspInfo[i].pOutX > 1.0f && WeaponEspInfo[i].pOutY > 1.0f && (float)WeaponEspInfo[i].RealDistance > 4.0f)
+				DX9DrawEllipse(pDevice, (int)WeaponEspInfo[i].pOutX-6, (int)WeaponEspInfo[i].pOutY-8, 16, 32, 1, col);//-8 or -9
 		}
 	}
 
@@ -279,10 +288,41 @@ HRESULT APIENTRY Present_hook(IDirect3DDevice9* pDevice, const RECT *pSourceRect
 	{
 		for (unsigned int i = 0; i < WeaponEspInfo.size(); i++)
 		{
-			if (WeaponEspInfo[i].pOutX > 1.0f && WeaponEspInfo[i].pOutY > 1.0f && (float)WeaponEspInfo[i].RealDistance > 4.0f)//&& (float)WeaponEspInfo[i].vSizeod == 2008)//long range weapon
-				DrawLine(pDevice, (int)WeaponEspInfo[i].pOutX, (int)WeaponEspInfo[i].pOutY, ScreenCX, ScreenCY * ((float)lineesp * 0.2f), 1, D3DCOLOR_ARGB(255, 255, 255, 255), 0);//0.1up, 1.0middle, 2.0down
+			//show where enemy is looking or aiming at
+			if (lineesp == 1 && WeaponEspInfo[i].pOutX > 1.0f && WeaponEspInfo[i].pOutY > 1.0f && (float)WeaponEspInfo[i].RealDistance > 4.0f && WeaponEspInfo[i].pOut2X > 1.0f && WeaponEspInfo[i].pOut2Y > 1.0f)
+				DrawLine(pDevice, (int)WeaponEspInfo[i].pOutX, (int)WeaponEspInfo[i].pOutY, (int)WeaponEspInfo[i].pOut2X, (int)WeaponEspInfo[i].pOut2Y, 2, D3DCOLOR_ARGB(255, 0, 0, 255), 0);
+
+			else if (lineesp == 2 && WeaponEspInfo[i].pOutX > 1.0f && WeaponEspInfo[i].pOutY > 1.0f && (float)WeaponEspInfo[i].RealDistance > 4.0f && (float)WeaponEspInfo[i].vSize == 2008)//long range weapon
+				DrawLine(pDevice, (int)WeaponEspInfo[i].pOutX, (int)WeaponEspInfo[i].pOutY, ScreenCX, ScreenCY * 0.2f, 1, D3DCOLOR_ARGB(255, 255, 255, 255), 0);//0.1up, 1.0middle, 2.0down
 				//DrawLine2(pDevice, (int)WeaponEspInfo[i].pOutX, (int)WeaponEspInfo[i].pOutY, ScreenCX, ScreenCY * ((float)esp * 0.2f), 1, D3DCOLOR_ARGB(255, 255, 255, 255));
 				//DrawLine3(pDevice, D3DCOLOR_ARGB(255, 255, 255, 255), (int)WeaponEspInfo[i].pOutX, (int)WeaponEspInfo[i].pOutY, 1);//no
+
+			else if (lineesp == 3 && WeaponEspInfo[i].pOutX > 1.0f && WeaponEspInfo[i].pOutY > 1.0f && (float)WeaponEspInfo[i].RealDistance > 4.0f)
+				DrawLine(pDevice, (int)WeaponEspInfo[i].pOutX, (int)WeaponEspInfo[i].pOutY, ScreenCX, ScreenCY * 0.4f, 1, D3DCOLOR_ARGB(255, 255, 255, 255), 0);
+
+			else if (lineesp == 4 && WeaponEspInfo[i].pOutX > 1.0f && WeaponEspInfo[i].pOutY > 1.0f && (float)WeaponEspInfo[i].RealDistance > 4.0f)
+				DrawLine(pDevice, (int)WeaponEspInfo[i].pOutX, (int)WeaponEspInfo[i].pOutY, ScreenCX, ScreenCY * 0.6f, 1, D3DCOLOR_ARGB(255, 255, 255, 255), 0);
+
+			else if (lineesp == 5 && WeaponEspInfo[i].pOutX > 1.0f && WeaponEspInfo[i].pOutY > 1.0f && (float)WeaponEspInfo[i].RealDistance > 4.0f)
+				DrawLine(pDevice, (int)WeaponEspInfo[i].pOutX, (int)WeaponEspInfo[i].pOutY, ScreenCX, ScreenCY * 0.8f, 1, D3DCOLOR_ARGB(255, 255, 255, 255), 0);
+
+			else if (lineesp == 6 && WeaponEspInfo[i].pOutX > 1.0f && WeaponEspInfo[i].pOutY > 1.0f && (float)WeaponEspInfo[i].RealDistance > 4.0f)
+				DrawLine(pDevice, (int)WeaponEspInfo[i].pOutX, (int)WeaponEspInfo[i].pOutY, ScreenCX, ScreenCY * 1.0f, 1, D3DCOLOR_ARGB(255, 255, 255, 255), 0);
+
+			else if (lineesp == 7 && WeaponEspInfo[i].pOutX > 1.0f && WeaponEspInfo[i].pOutY > 1.0f && (float)WeaponEspInfo[i].RealDistance > 4.0f)
+				DrawLine(pDevice, (int)WeaponEspInfo[i].pOutX, (int)WeaponEspInfo[i].pOutY, ScreenCX, ScreenCY * 1.2f, 1, D3DCOLOR_ARGB(255, 255, 255, 255), 0);
+
+			else if (lineesp == 8 && WeaponEspInfo[i].pOutX > 1.0f && WeaponEspInfo[i].pOutY > 1.0f && (float)WeaponEspInfo[i].RealDistance > 4.0f)
+				DrawLine(pDevice, (int)WeaponEspInfo[i].pOutX, (int)WeaponEspInfo[i].pOutY, ScreenCX, ScreenCY * 1.4f, 1, D3DCOLOR_ARGB(255, 255, 255, 255), 0);
+
+			else if (lineesp == 9 && WeaponEspInfo[i].pOutX > 1.0f && WeaponEspInfo[i].pOutY > 1.0f && (float)WeaponEspInfo[i].RealDistance > 4.0f)
+				DrawLine(pDevice, (int)WeaponEspInfo[i].pOutX, (int)WeaponEspInfo[i].pOutY, ScreenCX, ScreenCY * 1.6f, 1, D3DCOLOR_ARGB(255, 255, 255, 255), 0);
+
+			else if (lineesp == 10 && WeaponEspInfo[i].pOutX > 1.0f && WeaponEspInfo[i].pOutY > 1.0f && (float)WeaponEspInfo[i].RealDistance > 4.0f)
+				DrawLine(pDevice, (int)WeaponEspInfo[i].pOutX, (int)WeaponEspInfo[i].pOutY, ScreenCX, ScreenCY * 1.8f, 1, D3DCOLOR_ARGB(255, 255, 255, 255), 0);
+
+			else if (lineesp == 11 && WeaponEspInfo[i].pOutX > 1.0f && WeaponEspInfo[i].pOutY > 1.0f && (float)WeaponEspInfo[i].RealDistance > 4.0f)
+				DrawLine(pDevice, (int)WeaponEspInfo[i].pOutX, (int)WeaponEspInfo[i].pOutY, ScreenCX, ScreenCY * 2.0f, 1, D3DCOLOR_ARGB(255, 255, 255, 255), 0);
 		}
 	}
 
@@ -439,6 +479,11 @@ HANDLE WINAPI Routed_CreateFile(LPCWSTR lpFileName, DWORD dwDesiredAccess, DWORD
 	{	
 		Log("buffer == %s", buffer);//log jpg
 	}
+	if (strcmp(buffer + strlen(buffer) - 4, ".bmp") == 0)
+	{
+		Log("buffer == %s", buffer);
+	}
+
 	return Real_CreateFile(lpFileName, dwDesiredAccess, dwShareMode, lpSecurityAttributes, dwCreationDisposition, dwFlagsAndAttributes, hTemplateFile);
 }
 
@@ -535,7 +580,6 @@ DWORD WINAPI RosD3D(__in LPVOID lpParameter)
 	DetourTransactionCommit();
 	*/
 	
-	
 	// Detour functions x86 & x64
 	if (MH_Initialize() != MH_OK) { return 1; }
 	if (MH_CreateHook((DWORD_PTR*)dVtable[17], &Present_hook, reinterpret_cast<void**>(&Present_orig)) != MH_OK) { return 1; }
@@ -558,9 +602,9 @@ DWORD WINAPI RosD3D(__in LPVOID lpParameter)
 	MH_CreateHook(ptr, Routed_CreateFile, reinterpret_cast<void**>(&Real_CreateFile));
 	MH_EnableHook(ptr);
 
-	//void* ptr2 = GetProcAddress(mod, "GETSystemTimeAsFileTime");
-	//if (MH_CreateHook(ptr2, &Hooked_GETSystemTimeAsFileTime, reinterpret_cast<void**>(&GETSystemTimeAsFileTime_orig)) != MH_OK) { return 1; }
-	//if (MH_EnableHook(ptr2) != MH_OK) { return 1; }
+	void* ptr2 = GetProcAddress(mod, "GETSystemTimeAsFileTime");
+	if (MH_CreateHook(ptr2, &Hooked_GETSystemTimeAsFileTime, reinterpret_cast<void**>(&GETSystemTimeAsFileTime_orig)) != MH_OK) { return 1; }
+	if (MH_EnableHook(ptr2) != MH_OK) { return 1; }
 	
 	//Log("[Detours] Detours attached\n");
 
