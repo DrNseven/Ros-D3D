@@ -68,7 +68,7 @@ static BOOL screenshot_taken = FALSE;
 //visuals
 int wallhack = 1;				//wallhack
 int distanceesp = 1;			//distance esp
-int shaderesp = 1;				//shader esp
+int shaderesp = 0;				//shader esp
 int lineesp = 10;				//line esp
 int boxesp = 0;					//box esp
 int picesp = 0;					//pic esp
@@ -480,8 +480,7 @@ DWORD FVF = D3DFVF_XYZRHW | D3DFVF_TEX1 | D3DFVF_DIFFUSE;
 IDirect3DPixelShader9* ellipse;
 int DX9DrawEllipse(IDirect3DDevice9* pDevice, float x, float y, float w, float h, float linew, DWORD *color)
 {
-
-	if (!pDevice)return 1;
+	//if (!pDevice)return 1;
 	static IDirect3DVertexBuffer9 *vb = 0;
 	static IDirect3DIndexBuffer9 *ib = 0;
 	static IDirect3DSurface9 *surface = 0;
