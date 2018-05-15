@@ -1,5 +1,5 @@
 /*
-* Ros D3D 1.3 by n7
+* Ros D3D 1.3b by n7
 How to compile:
 - compile with visual studio community 2017 (..\Microsoft Visual Studio\2017\Community\Common7\IDE\devenv.exe)
 - select Release x86
@@ -97,8 +97,6 @@ HRESULT APIENTRY SetTexture_hook(LPDIRECT3DDEVICE9 pDevice, DWORD Sampler, IDire
 		ScreenCX = (float)Viewport.Width / 2.0f;
 		ScreenCY = (float)Viewport.Height / 2.0f;
 
-		DX9CreateEllipseShader(pDevice, &ellipse);
-
 		//GenerateTexture(pDevice, &Red, D3DCOLOR_ARGB(255, 255, 0, 0));
 		//GenerateTexture(pDevice, &Green, D3DCOLOR_RGBA(0, 255, 0, 255));
 		//GenerateTexture(pDevice, &Blue, D3DCOLOR_ARGB(255, 0, 0, 255));
@@ -106,6 +104,9 @@ HRESULT APIENTRY SetTexture_hook(LPDIRECT3DDEVICE9 pDevice, DWORD Sampler, IDire
 
 		LoadCfg();
 	}
+
+	if(shaderesp == 1 && !ellipse)
+		DX9CreateEllipseShader(pDevice, &ellipse);
 
 	//get vSize
 	if (SUCCEEDED(pDevice->GetVertexShader(&vShader)))
@@ -125,7 +126,7 @@ HRESULT APIENTRY SetTexture_hook(LPDIRECT3DDEVICE9 pDevice, DWORD Sampler, IDire
 			if (wallhack == 2 && vSize != 1436)
 			{
 				float sColor[4] = { 0.0f, 1.0f, 0.0f, 1.0f };//green
-				pDevice->SetPixelShaderConstantF(0, sColor, 1);
+				//pDevice->SetPixelShaderConstantF(0, sColor, 1);
 				//SetTexture_orig(pDevice, 0, Red);
 				//SetTexture_orig(pDevice, 1, Red);
 			}
