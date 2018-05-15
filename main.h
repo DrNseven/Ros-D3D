@@ -159,10 +159,9 @@ void AddWeapons(LPDIRECT3DDEVICE9 Device)
 	D3DXMATRIX matrix;
 	Device->GetVertexShaderConstantF(13, matrix, 4);
 
-	D3DXVECTOR3 pOut, pOut2, pIn(0.0f, (float)aimheight, 0.0f), pIn2(0, (float)aimheight, 75.0f);//esp 1 line length
+	D3DXVECTOR3 pOut, pIn(0.0f, (float)aimheight, -2.0f);
 	float distance = pIn.x * matrix._14 + pIn.y * matrix._24 + pIn.z * matrix._34 + matrix._44;
 	D3DXVec3TransformCoord(&pOut, &pIn, &matrix);
-	D3DXVec3TransformCoord(&pOut2, &pIn2, &matrix);
 
 	pOut.x = Viewport.X + (1.0f + pOut.x) *Viewport.Width / 2.0f;
 	pOut.y = Viewport.Y + (1.0f - pOut.y) *Viewport.Height / 2.0f;
@@ -179,19 +178,25 @@ void AddWeapons(LPDIRECT3DDEVICE9 Device)
 		y1 = -1.0f;
 	}
 
-	pOut2.x = Viewport.X + (1.0f + pOut2.x) *Viewport.Width / 2.0f;
-	pOut2.y = Viewport.Y + (1.0f - pOut2.y) *Viewport.Height / 2.0f;
-
 	float x2, y2;
-	if (pOut2.x > 0.0f && pOut2.y > 0.0f && pOut2.x < Viewport.Width && pOut2.y < Viewport.Height)
+	if(lineesp==1)
 	{
-		x2 = pOut2.x;
-		y2 = pOut2.y;
-	}
-	else
-	{
-		x2 = -1.0f;
-		y2 = -1.0f;
+		D3DXVECTOR3 pOut2, pIn2(0, (float)aimheight, 75.0f);//esp 1 line length
+		D3DXVec3TransformCoord(&pOut2, &pIn2, &matrix);
+
+		pOut2.x = Viewport.X + (1.0f + pOut2.x) *Viewport.Width / 2.0f;
+		pOut2.y = Viewport.Y + (1.0f - pOut2.y) *Viewport.Height / 2.0f;
+
+		if (pOut2.x > 0.0f && pOut2.y > 0.0f && pOut2.x < Viewport.Width && pOut2.y < Viewport.Height)
+		{
+			x2 = pOut2.x;
+			y2 = pOut2.y;
+		}
+		else
+		{
+			x2 = -1.0f;
+			y2 = -1.0f;
+		}
 	}
 
 	WeaponEspInfo_t pWeaponEspInfo = { static_cast<float>(x1), static_cast<float>(y1), static_cast<float>(distance*0.1f), static_cast<float>(x2), static_cast<float>(y2), static_cast<float>(vSize) };
