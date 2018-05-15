@@ -179,7 +179,7 @@ void AddWeapons(LPDIRECT3DDEVICE9 Device)
 	}
 
 	float x2, y2;
-	if(lineesp==1)
+	if (lineesp == 1)
 	{
 		D3DXVECTOR3 pOut2, pIn2(0, (float)aimheight, 75.0f);//esp 1 line length
 		D3DXVec3TransformCoord(&pOut2, &pIn2, &matrix);
@@ -482,7 +482,7 @@ struct VERTEX
 	float tu, tv;
 };
 DWORD FVF = D3DFVF_XYZRHW | D3DFVF_TEX1 | D3DFVF_DIFFUSE;
-IDirect3DPixelShader9* ellipse = NULL;
+IDirect3DPixelShader9* ellipse;
 int DX9DrawEllipse(IDirect3DDevice9* pDevice, float x, float y, float w, float h, float linew, DWORD *color)
 {
 	//if (!pDevice)return 1;
@@ -505,6 +505,7 @@ int DX9DrawEllipse(IDirect3DDevice9* pDevice, float x, float y, float w, float h
 			MessageBoxA(0, "DrawEllipse error ib", 0, 0);
 			return 3;
 		}
+
 	}
 	else
 	{
@@ -531,8 +532,8 @@ int DX9DrawEllipse(IDirect3DDevice9* pDevice, float x, float y, float w, float h
 
 		pDevice->SetPixelShaderConstantF(0, radius, 1);
 		pDevice->SetFVF(FVF);
-		//pDevice->SetTexture(0, NULL);
-		pDevice->SetPixelShader(0);
+		//pDevice->SetTexture(0, 0);
+		pDevice->SetPixelShader(ellipse);
 		//pDevice->SetVertexShader(0);
 		pDevice->SetStreamSource(0, vb, 0, sizeof(VERTEX));
 		pDevice->SetIndices(ib);
@@ -809,7 +810,7 @@ void DrawMenu(LPDIRECT3DDEVICE9 pDevice)
 
 		AddItem(pDevice, "Wallhack", wallhack, opt_WhChams, 2);
 		AddItem(pDevice, "Distance Esp", distanceesp, opt_OnOff, 1);
-		AddItem(pDevice, "Shadr Esp", shaderesp, opt_OnOff, 1);
+		AddItem(pDevice, "Shader Esp", shaderesp, opt_OnOff, 1);
 		AddItem(pDevice, "Line Esp", lineesp, opt_ZeroTen, 11);
 		AddItem(pDevice, "Box Esp", boxesp, opt_OnOff, 1);
 		AddItem(pDevice, "Pic Esp", picesp, opt_OnOff, 1);

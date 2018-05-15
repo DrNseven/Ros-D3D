@@ -1,5 +1,5 @@
 /*
-* Ros D3D 1.3b by n7
+* Ros D3D 1.3c by n7
 How to compile:
 - compile with visual studio community 2017 (..\Microsoft Visual Studio\2017\Community\Common7\IDE\devenv.exe)
 - select Release x86
@@ -106,7 +106,7 @@ HRESULT APIENTRY SetTexture_hook(LPDIRECT3DDEVICE9 pDevice, DWORD Sampler, IDire
 	}
 
 	if(shaderesp == 1 && !ellipse)
-		DX9CreateEllipseShader(pDevice, &ellipse);
+	DX9CreateEllipseShader(pDevice, &ellipse);
 
 	//get vSize
 	if (SUCCEEDED(pDevice->GetVertexShader(&vShader)))
@@ -126,7 +126,7 @@ HRESULT APIENTRY SetTexture_hook(LPDIRECT3DDEVICE9 pDevice, DWORD Sampler, IDire
 			if (wallhack == 2 && vSize != 1436)
 			{
 				float sColor[4] = { 0.0f, 1.0f, 0.0f, 1.0f };//green
-				//pDevice->SetPixelShaderConstantF(0, sColor, 1);
+				pDevice->SetPixelShaderConstantF(0, sColor, 1);
 				//SetTexture_orig(pDevice, 0, Red);
 				//SetTexture_orig(pDevice, 1, Red);
 			}
@@ -290,10 +290,10 @@ HRESULT APIENTRY Present_hook(IDirect3DDevice9* pDevice, const RECT *pSourceRect
 		for (unsigned int i = 0; i < WeaponEspInfo.size(); i++)
 		{
 			//show where enemy is looking or aiming at
-			if (lineesp == 1 && WeaponEspInfo[i].pOutX > 1.0f && WeaponEspInfo[i].pOutY > 1.0f && (float)WeaponEspInfo[i].RealDistance > 4.0f && WeaponEspInfo[i].pOut2X > 1.0f && WeaponEspInfo[i].pOut2Y > 1.0f)
+			if (lineesp == 1 && WeaponEspInfo[i].pOutX > 1.0f && WeaponEspInfo[i].pOutY > 1.0f && (float)WeaponEspInfo[i].RealDistance > 4.0f && WeaponEspInfo[i].pOut2X > 1.0f && WeaponEspInfo[i].pOut2Y > 1.0f && (float)WeaponEspInfo[i].vSize == 2008)//long range weapon
 				DrawLine(pDevice, (int)WeaponEspInfo[i].pOutX, (int)WeaponEspInfo[i].pOutY, (int)WeaponEspInfo[i].pOut2X, (int)WeaponEspInfo[i].pOut2Y, 2, D3DCOLOR_ARGB(255, 0, 0, 255), 0);
 
-			else if (lineesp == 2 && WeaponEspInfo[i].pOutX > 1.0f && WeaponEspInfo[i].pOutY > 1.0f && (float)WeaponEspInfo[i].RealDistance > 4.0f && (float)WeaponEspInfo[i].vSize == 2008)//long range weapon
+			else if (lineesp == 2 && WeaponEspInfo[i].pOutX > 1.0f && WeaponEspInfo[i].pOutY > 1.0f && (float)WeaponEspInfo[i].RealDistance > 4.0f)
 				DrawLine(pDevice, (int)WeaponEspInfo[i].pOutX, (int)WeaponEspInfo[i].pOutY, ScreenCX, ScreenCY * 0.2f, 1, D3DCOLOR_ARGB(255, 255, 255, 255), 0);//0.1up, 1.0middle, 2.0down
 				//DrawLine2(pDevice, (int)WeaponEspInfo[i].pOutX, (int)WeaponEspInfo[i].pOutY, ScreenCX, ScreenCY * ((float)esp * 0.2f), 1, D3DCOLOR_ARGB(255, 255, 255, 255));
 				//DrawLine3(pDevice, D3DCOLOR_ARGB(255, 255, 255, 255), (int)WeaponEspInfo[i].pOutX, (int)WeaponEspInfo[i].pOutY, 1);//no
