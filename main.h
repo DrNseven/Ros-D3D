@@ -110,7 +110,7 @@ void Log(const char *fmt, ...)
 	vsprintf_s(text, fmt, ap);
 	va_end(ap);
 
-	ofstream logfile(GetDirFile("log.txt"), ios::app);
+	ofstream logfile(GetDirFile((PCHAR)"log.txt"), ios::app);
 	if (logfile.is_open() && text)	logfile << text << endl;
 	logfile.close();
 }
@@ -373,7 +373,7 @@ bool CreateSprite(IDirect3DDevice9* pDevice)
 {
 	HRESULT hr;
 
-	hr = D3DXCreateTextureFromFileA(pDevice, GetDirFile("circle.png"), &pSpriteTextureImage);
+	hr = D3DXCreateTextureFromFileA(pDevice, GetDirFile((PCHAR)"circle.png"), &pSpriteTextureImage);
 
 	if (FAILED(hr))
 	{
@@ -433,7 +433,7 @@ void DrawPic(IDirect3DDevice9* pDevice, IDirect3DTexture9 *tex, int cx, int cy)
 int DX9CreateEllipseShader(IDirect3DDevice9* pDevice, IDirect3DPixelShader9 **pShader)
 {
 	char vers[100];
-	char *strshader = "\
+	char *strshader = (PCHAR)"\
 float4 radius: register(c0);\
 sampler mytexture;\
 struct VS_OUTPUT\
@@ -552,7 +552,7 @@ int DX9DrawEllipse(IDirect3DDevice9* pDevice, float x, float y, float w, float h
 void SaveCfg()
 {
 	ofstream fout;
-	fout.open(GetDirFile("rosd3d.ini"), ios::trunc);
+	fout.open(GetDirFile((PCHAR)"rosd3d.ini"), ios::trunc);
 	fout << "wallhack " << wallhack << endl;
 	fout << "distanceesp " << distanceesp << endl;
 	fout << "shaderesp " << shaderesp << endl;
@@ -574,7 +574,7 @@ void LoadCfg()
 {
 	ifstream fin;
 	string Word = "";
-	fin.open(GetDirFile("rosd3d.ini"), ifstream::in);
+	fin.open(GetDirFile((PCHAR)"rosd3d.ini"), ifstream::in);
 	fin >> Word >> wallhack;
 	fin >> Word >> distanceesp;
 	fin >> Word >> shaderesp;
@@ -703,7 +703,7 @@ void Category(LPDIRECT3DDEVICE9 pDevice, char *text)
 			ColorText = D3DCOLOR_ARGB(255, 255, 255, 255);
 
 		WriteText(PosX + 44, PosY + 50 + (Current * 15) - 1, ColorText, text);
-		lWriteText(PosX + 236, PosY + 50 + (Current * 15) - 1, ColorText, "[-]");
+		lWriteText(PosX + 236, PosY + 50 + (Current * 15) - 1, ColorText, (PCHAR)"[-]");
 		Current++;
 	}
 }
@@ -772,12 +772,12 @@ void AddItem(LPDIRECT3DDEVICE9 pDevice, char *text, int &var, char **opt, int Ma
 //==========================================================================================================================
 
 // menu part
-char *opt_OnOff[] = { "[OFF]", "[On]" };
-char *opt_WhChams[] = { "[OFF]", "[On]", "[Color]" };
-char *opt_ZeroTen[] = { "[0]", "[1]", "[2]", "[3]", "[4]", "[5]", "[6]", "[7]", "[8]", "[9]", "[10]", "[11]" };
-char *opt_Keys[] = { "[OFF]", "[Shift]", "[RMouse]", "[LMouse]", "[Ctrl]", "[Alt]", "[Space]", "[X]", "[C]" };
-char *opt_aimfov[] = { "[0]", "[5%]", "[10%]", "[15%]", "[20%]", "[25%]", "[30%]", "[35%]", "[40%]", "[45%]" };
-char *opt_autoshoot[] = { "[OFF]", "[OnKeyDown]" };
+char *opt_OnOff[] = { (PCHAR)"[OFF]", (PCHAR)"[On]" };
+char *opt_WhChams[] = { (PCHAR)"[OFF]", (PCHAR)"[On]", (PCHAR)"[Color]" };
+char *opt_ZeroTen[] = { (PCHAR)"[0]", (PCHAR)"[1]", (PCHAR)"[2]", (PCHAR)"[3]", (PCHAR)"[4]", (PCHAR)"[5]", (PCHAR)"[6]", (PCHAR)"[7]", (PCHAR)"[8]", (PCHAR)"[9]", (PCHAR)"[10]", (PCHAR)"[11]" };
+char *opt_Keys[] = { (PCHAR)"[OFF]", (PCHAR)"[Shift]", (PCHAR)"[RMouse]", (PCHAR)"[LMouse]", (PCHAR)"[Ctrl]", (PCHAR)"[Alt]", (PCHAR)"[Space]", (PCHAR)"[X]", (PCHAR)"[C]" };
+char *opt_aimfov[] = { (PCHAR)"[0]", (PCHAR)"[5%]", (PCHAR)"[10%]", (PCHAR)"[15%]", (PCHAR)"[20%]", (PCHAR)"[25%]", (PCHAR)"[30%]", (PCHAR)"[35%]", (PCHAR)"[40%]", (PCHAR)"[45%]" };
+char *opt_autoshoot[] = { (PCHAR)"[OFF]", (PCHAR)"[OnKeyDown]" };
 
 void DrawMenu(LPDIRECT3DDEVICE9 pDevice)
 {
@@ -808,20 +808,20 @@ void DrawMenu(LPDIRECT3DDEVICE9 pDevice)
 
 		Current = 1;
 
-		AddItem(pDevice, "Wallhack", wallhack, opt_WhChams, 2);
-		AddItem(pDevice, "Distance Esp", distanceesp, opt_OnOff, 1);
-		AddItem(pDevice, "Shader Esp", shaderesp, opt_OnOff, 1);
-		AddItem(pDevice, "Line Esp", lineesp, opt_ZeroTen, 11);
-		AddItem(pDevice, "Box Esp", boxesp, opt_OnOff, 1);
-		AddItem(pDevice, "Pic Esp", picesp, opt_OnOff, 1);
-		AddItem(pDevice, "Aimbot", aimbot, opt_OnOff, 1);
-		AddItem(pDevice, "Aimkey", aimkey, opt_Keys, 8);
-		AddItem(pDevice, "Aimsens", aimsens, opt_ZeroTen, 10);
-		AddItem(pDevice, "Aimfov", aimfov, opt_aimfov, 9);
-		AddItem(pDevice, "Aimheight", aimheight, opt_ZeroTen, 5);
-		AddItem(pDevice, "Autoshoot", autoshoot, opt_autoshoot, 1);
-		AddItem(pDevice, "No Grass", nograss, opt_OnOff, 1);
-		AddItem(pDevice, "No Fog", nofog, opt_OnOff, 1);
+		AddItem(pDevice, (PCHAR)"Wallhack", wallhack, opt_WhChams, 2);
+		AddItem(pDevice, (PCHAR)"Distance Esp", distanceesp, opt_OnOff, 1);
+		AddItem(pDevice, (PCHAR)"Shader Esp", shaderesp, opt_OnOff, 1);
+		AddItem(pDevice, (PCHAR)"Line Esp", lineesp, opt_ZeroTen, 11);
+		AddItem(pDevice, (PCHAR)"Box Esp", boxesp, opt_OnOff, 1);
+		AddItem(pDevice, (PCHAR)"Pic Esp", picesp, opt_OnOff, 1);
+		AddItem(pDevice, (PCHAR)"Aimbot", aimbot, opt_OnOff, 1);
+		AddItem(pDevice, (PCHAR)"Aimkey", aimkey, opt_Keys, 8);
+		AddItem(pDevice, (PCHAR)"Aimsens", aimsens, opt_ZeroTen, 10);
+		AddItem(pDevice, (PCHAR)"Aimfov", aimfov, opt_aimfov, 9);
+		AddItem(pDevice, (PCHAR)"Aimheight", aimheight, opt_ZeroTen, 5);
+		AddItem(pDevice, (PCHAR)"Autoshoot", autoshoot, opt_autoshoot, 1);
+		AddItem(pDevice, (PCHAR)"No Grass", nograss, opt_OnOff, 1);
+		AddItem(pDevice, (PCHAR)"No Fog", nofog, opt_OnOff, 1);
 
 		if (menuselect >= Current)
 			menuselect = 1;

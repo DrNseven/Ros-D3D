@@ -1,7 +1,8 @@
 /*
-* Ros D3D 1.3c by n7
+* Ros D3D 1.3d by n7
 How to compile:
 - compile with visual studio community 2017 (..\Microsoft Visual Studio\2017\Community\Common7\IDE\devenv.exe)
+- Go to file -> new project -> visual c++ -> windows desktop -> windows desktop wizard -> select empty dll
 - select Release x86
 - click: project -> properties -> configuration properties -> general -> character set -> change to "not set"
 - compile with CTRL + Shift + B
@@ -182,7 +183,7 @@ HRESULT APIENTRY SetTexture_hook(LPDIRECT3DDEVICE9 pDevice, DWORD Sampler, IDire
 	{
 		//SetTexture_orig(pDevice, 0, Yellow);
 		//SetTexture_orig(pDevice, 1, Yellow);
-		//return D3D_OK; //delete texture
+		return D3D_OK; //delete texture
 		//pDevice->SetRenderState(D3DRS_FILLMODE, D3DFILL_WIREFRAME);
 	}
 	*/
@@ -234,7 +235,7 @@ HRESULT APIENTRY Present_hook(IDirect3DDevice9* pDevice, const RECT *pSourceRect
 
 	if (screenshot_taken && Font)
 	{
-		DrawCenteredString(Font, (int)Viewport.Width/2, (int)Viewport.Height/2, D3DCOLOR_ARGB(255, 255, 255, 255), "Someone reported you. Screenshot blocked. (gmcomplaint.jpg)");
+		DrawCenteredString(Font, (int)Viewport.Width/2, (int)Viewport.Height/2, D3DCOLOR_ARGB(255, 255, 255, 255), (PCHAR)"Someone reported you. Screenshot blocked. (gmcomplaint.jpg)");
 
 		static DWORD lastTime = timeGetTime();
 		DWORD timePassed = timeGetTime() - lastTime;
@@ -264,11 +265,11 @@ HRESULT APIENTRY Present_hook(IDirect3DDevice9* pDevice, const RECT *pSourceRect
 		for (unsigned int i = 0; i < WeaponEspInfo.size(); i++)
 		{
 			if (WeaponEspInfo[i].pOutX > 1.0f && WeaponEspInfo[i].pOutY > 1.0f && (float)WeaponEspInfo[i].RealDistance > 4.0f && (float)WeaponEspInfo[i].RealDistance <= 200.0f) // 4 - 200 yellow
-				DrawCenteredString(Font, (int)WeaponEspInfo[i].pOutX, (int)WeaponEspInfo[i].pOutY - 20.0f, D3DCOLOR_ARGB(255, 255, 255, 0), "%.f", (float)WeaponEspInfo[i].RealDistance);
+				DrawCenteredString(Font, (int)WeaponEspInfo[i].pOutX, (int)WeaponEspInfo[i].pOutY - 20.0f, D3DCOLOR_ARGB(255, 255, 255, 0), (PCHAR)"%.f", (float)WeaponEspInfo[i].RealDistance);
 			else if (WeaponEspInfo[i].pOutX > 1.0f && WeaponEspInfo[i].pOutY > 1.0f && (float)WeaponEspInfo[i].RealDistance > 200.0f && (float)WeaponEspInfo[i].RealDistance <= 1000.0f) //200 - 1000 white
-				DrawCenteredString(Font, (int)WeaponEspInfo[i].pOutX, (int)WeaponEspInfo[i].pOutY - 20.0f, D3DCOLOR_ARGB(255, 255, 255, 255), "%.f", (float)WeaponEspInfo[i].RealDistance); 
+				DrawCenteredString(Font, (int)WeaponEspInfo[i].pOutX, (int)WeaponEspInfo[i].pOutY - 20.0f, D3DCOLOR_ARGB(255, 255, 255, 255), (PCHAR)"%.f", (float)WeaponEspInfo[i].RealDistance);
 			else if (WeaponEspInfo[i].pOutX > 1.0f && WeaponEspInfo[i].pOutY > 1.0f && (float)WeaponEspInfo[i].RealDistance > 1000.0f) //> 1000 gray
-				DrawCenteredString(Font, (int)WeaponEspInfo[i].pOutX, (int)WeaponEspInfo[i].pOutY - 20.0f, D3DCOLOR_ARGB(255, 128, 128, 128), "%.f", (float)WeaponEspInfo[i].RealDistance);
+				DrawCenteredString(Font, (int)WeaponEspInfo[i].pOutX, (int)WeaponEspInfo[i].pOutY - 20.0f, D3DCOLOR_ARGB(255, 128, 128, 128), (PCHAR)"%.f", (float)WeaponEspInfo[i].RealDistance);
 		}
 	}
 
@@ -428,8 +429,8 @@ HRESULT APIENTRY Present_hook(IDirect3DDevice9* pDevice, const RECT *pSourceRect
 	DrawString(Font, 219, 99, D3DCOLOR_ARGB(255, 0, 0, 0), (char*)&szString[0]);
 	DrawString(Font, 221, 101, D3DCOLOR_ARGB(255, 0, 0, 0), (char*)&szString[0]);
 	DrawString(Font, 220, 100, D3DCOLOR_ARGB(255, 255, 255, 255), (char*)&szString[0]);
-	DrawString(Font, 220, 110, D3DCOLOR_ARGB(255, 255, 255, 255), "hold P to +");
-	DrawString(Font, 220, 120, D3DCOLOR_ARGB(255, 255, 255, 255), "hold O to -");
+	DrawString(Font, 220, 110, D3DCOLOR_ARGB(255, 255, 255, 255), (PCHAR)"hold P to +");
+	DrawString(Font, 220, 120, D3DCOLOR_ARGB(255, 255, 255, 255), (PCHAR)"hold O to -");
 	}
 	*/
 	return Present_orig(pDevice, pSourceRect, pDestRect, hDestWindowOverride, pDirtyRegion);
