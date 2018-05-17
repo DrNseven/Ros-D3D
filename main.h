@@ -244,14 +244,14 @@ void DrawBox(IDirect3DDevice9 *pDevice, float x, float y, float w, float h, D3DC
 	pDevice->SetPixelShader(0);
 
 	// mix texture color
-	pDevice->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_MODULATE);
-	pDevice->SetTextureStageState(0, D3DTSS_COLORARG1, D3DTA_TEXTURE);
-	pDevice->SetTextureStageState(0, D3DTSS_COLORARG2, D3DTA_DIFFUSE);
+	//pDevice->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_MODULATE);
+	//pDevice->SetTextureStageState(0, D3DTSS_COLORARG1, D3DTA_TEXTURE);
+	//pDevice->SetTextureStageState(0, D3DTSS_COLORARG2, D3DTA_DIFFUSE);
 
 	// mix texture alpha 
-	pDevice->SetTextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_MODULATE);
-	pDevice->SetTextureStageState(0, D3DTSS_ALPHAARG1, D3DTA_TEXTURE);
-	pDevice->SetTextureStageState(0, D3DTSS_ALPHAARG2, D3DTA_DIFFUSE);
+	//pDevice->SetTextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_MODULATE);
+	//pDevice->SetTextureStageState(0, D3DTSS_ALPHAARG1, D3DTA_TEXTURE);
+	//pDevice->SetTextureStageState(0, D3DTSS_ALPHAARG2, D3DTA_DIFFUSE);
 
 	//pDevice->SetRenderState(D3DRS_ALPHABLENDENABLE, true);
 	//pDevice->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA);
@@ -454,7 +454,7 @@ else return float4(0,0,0,0);\
 	pDevice->GetDeviceCaps(&caps);
 	UINT V1 = D3DSHADER_VERSION_MAJOR(caps.PixelShaderVersion);
 	UINT V2 = D3DSHADER_VERSION_MINOR(caps.PixelShaderVersion);
-	sprintf(vers, "ps_%d_%d", V1, V2);
+	sprintf_s(vers, "ps_%d_%d", V1, V2);
 	LPD3DXBUFFER pShaderBuf;
 	D3DXCompileShader(strshader, strlen(strshader), 0, 0, "PS", vers, 0, &pShaderBuf, 0, 0);
 	if (pShaderBuf == NULL)
@@ -527,7 +527,7 @@ int DX9DrawEllipse(IDirect3DDevice9* pDevice, float x, float y, float w, float h
 
 		radius[0] = (linew) / w;
 		if (radius[0]>0.5)radius[0] = 0.5;
-		radius[0] = 0.5 - radius[0];
+		radius[0] = 0.5f - radius[0];
 
 
 		pDevice->SetPixelShaderConstantF(0, radius, 1);
@@ -593,9 +593,79 @@ void LoadCfg()
 }
 
 //==========================================================================================================================
+/*
+class CTimer
+{
+public:
+	ULONGLONG dwTime;
+	bool bEnable;
+	CTimer()
+	{
+		dwTime = 0;
+		bEnable = true;
+	}
+	bool delay(DWORD dwMsec);
+	void reset();
+	void stop();
+};
+
+bool CTimer::delay(DWORD dwMsec)
+{
+	if (!bEnable)
+		return true;
+
+	if (!dwTime)
+		dwTime = GetTickCount64();
+
+	if (dwTime + dwMsec < GetTickCount64())
+	{
+		//dwTime = 0;
+		bEnable = false;
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
+
+void CTimer::reset()
+{
+	dwTime = 0;
+	bEnable = true;
+}
+
+void CTimer::stop()
+{
+	bEnable = false;
+}
+*/
+/*
+//1
+static ULONGLONG timefirst = GetTickCount64();
+if (GetTickCount64() - timefirst > 2000)
+{
+DrawCenteredString(Font, 180, 200, D3DCOLOR_ARGB(255, 255, 255, 0), "11111111111111");
+timefirst = GetTickCount64();
+}
+
+//2 same
+static CTimer TriggerDelayZoom;
+if (TriggerDelayZoom.delay(2000))
+{
+TriggerDelayZoom.reset();
+DrawCenteredString(Font, 180, 220, D3DCOLOR_ARGB(255, 255, 255, 0), "11111111111111");
+}
+else//optional
+{
+//DrawCenteredString(Font, 180, 240, D3DCOLOR_ARGB(255, 255, 255, 0), "22222222222222");
+}
+*/
+
+//==========================================================================================================================
 
 // menu stuff
-HRESULT DrawString(LPD3DXFONT Font, INT X, INT Y, DWORD dColor, CONST PCHAR cString, ...)
+HRESULT DrawString(LPD3DXFONT Font, INT X, INT Y, DWORD dColor, const char* cString, ...)
 {
 	HRESULT hRet;
 
@@ -620,7 +690,7 @@ HRESULT DrawString(LPD3DXFONT Font, INT X, INT Y, DWORD dColor, CONST PCHAR cStr
 	return hRet;
 }
 
-HRESULT DrawCenteredString(LPD3DXFONT Font, INT X, INT Y, DWORD dColor, CONST PCHAR cString, ...)
+HRESULT DrawCenteredString(LPD3DXFONT Font, INT X, INT Y, DWORD dColor, const char* cString, ...)
 {
 	HRESULT hRet;
 
@@ -738,8 +808,8 @@ void AddItem(LPDIRECT3DDEVICE9 pDevice, char *text, int &var, char **opt, int Ma
 
 		if (menuselect == Current)
 		{
-			static int lasttick_right = GetTickCount64();
-			static int lasttick_left = GetTickCount64();
+			static ULONGLONG lasttick_right = GetTickCount64();
+			static ULONGLONG lasttick_left = GetTickCount64();
 			if (GetAsyncKeyState(VK_RIGHT) && GetTickCount64() - lasttick_right > 100)
 			{
 				lasttick_right = GetTickCount64();
@@ -781,7 +851,7 @@ char *opt_autoshoot[] = { (PCHAR)"[OFF]", (PCHAR)"[OnKeyDown]" };
 
 void DrawMenu(LPDIRECT3DDEVICE9 pDevice)
 {
-	static int lasttick_insert = GetTickCount64();
+	static ULONGLONG lasttick_insert = GetTickCount64();
 	if (GetAsyncKeyState(VK_INSERT) && GetTickCount64() - lasttick_insert > 150)
 	{
 		lasttick_insert = GetTickCount64();
@@ -792,14 +862,14 @@ void DrawMenu(LPDIRECT3DDEVICE9 pDevice)
 
 	if (ShowMenu)
 	{
-		static int lasttick_up = GetTickCount64();
+		static ULONGLONG lasttick_up = GetTickCount64();
 		if (GetAsyncKeyState(VK_UP) && GetTickCount64() - lasttick_up > 100)
 		{
 			lasttick_up = GetTickCount64();
 			menuselect--;
 		}
 
-		static int lasttick_down = GetTickCount64();
+		static ULONGLONG lasttick_down = GetTickCount64();
 		if (GetAsyncKeyState(VK_DOWN) && GetTickCount64() - lasttick_down > 100)
 		{
 			lasttick_down = GetTickCount64();
