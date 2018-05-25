@@ -50,7 +50,8 @@ LPD3DXFONT Font; //font
 IDirect3DVertexShader9* vShader;
 UINT vSize;
 
-D3DVERTEXBUFFER_DESC vdesc;
+IDirect3DPixelShader9* pShader;
+UINT pSize;
 
 bool InitOnce = true;
 LPDIRECT3DTEXTURE9 Red, Green, Blue, Yellow;
@@ -59,7 +60,12 @@ int countnum = -1;
 
 static BOOL screenshot_taken = FALSE;
 
-//IDirect3DTexture9 *texture;
+IDirect3DTexture9 *texture;
+D3DSURFACE_DESC sDesc;
+
+IDirect3DVertexDeclaration9* pDecl;
+D3DVERTEXELEMENT9 decl[MAXD3DDECLLENGTH];
+UINT numElements;
 
 //==========================================================================================================================
 
@@ -74,6 +80,7 @@ int boxesp = 0;					//box esp
 int picesp = 0;					//pic esp
 int nograss = 1;				//nograss
 int nofog = 1;					//nofog
+int depthcheck = 1;				//draw square on heads which are not behind walls 
 
 //aimbot settings
 int aimbot = 1;
@@ -110,9 +117,28 @@ void Log(const char *fmt, ...)
 	vsprintf_s(text, fmt, ap);
 	va_end(ap);
 
-	ofstream logfile(GetDirFile((PCHAR)"log.txt"), ios::app);
+	ofstream logfile(GetDirFile((PCHAR)"logg.txt"), ios::app);
 	if (logfile.is_open() && text)	logfile << text << endl;
 	logfile.close();
+}
+
+void doDisassembleShader(LPDIRECT3DDEVICE9 pDevice, char* FileName)
+{
+	std::ofstream oLogFile(FileName, std::ios::trunc);
+	if (!oLogFile.is_open())
+		return;
+	IDirect3DVertexShader9* pShader;
+	pDevice->GetVertexShader(&pShader);
+	UINT pSizeOfData;
+	pShader->GetFunction(NULL, &pSizeOfData);
+	BYTE* pData = new BYTE[pSizeOfData];
+	pShader->GetFunction(pData, &pSizeOfData);
+	LPD3DXBUFFER bOut;
+	D3DXDisassembleShader(reinterpret_cast<DWORD*>(pData), NULL, NULL, &bOut);
+	oLogFile << static_cast<char*>(bOut->GetBufferPointer()) << std::endl;
+	oLogFile.close();
+	delete[] pData;
+	pShader->Release();
 }
 
 //==========================================================================================================================
@@ -243,16 +269,6 @@ void DrawBox(IDirect3DDevice9 *pDevice, float x, float y, float w, float h, D3DC
 	pDevice->SetTexture(0, NULL);
 	pDevice->SetPixelShader(0);
 
-	// mix texture color
-	//pDevice->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_MODULATE);
-	//pDevice->SetTextureStageState(0, D3DTSS_COLORARG1, D3DTA_TEXTURE);
-	//pDevice->SetTextureStageState(0, D3DTSS_COLORARG2, D3DTA_DIFFUSE);
-
-	// mix texture alpha 
-	//pDevice->SetTextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_MODULATE);
-	//pDevice->SetTextureStageState(0, D3DTSS_ALPHAARG1, D3DTA_TEXTURE);
-	//pDevice->SetTextureStageState(0, D3DTSS_ALPHAARG2, D3DTA_DIFFUSE);
-
 	//pDevice->SetRenderState(D3DRS_ALPHABLENDENABLE, true);
 	//pDevice->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA);
 	//pDevice->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);
@@ -353,8 +369,8 @@ VOID DrawLine2(IDirect3DDevice9* pDevice, FLOAT startx, FLOAT starty, FLOAT endx
 //=====================================================================================================================
  
 // draw sprite
-LPD3DXSPRITE pSprite = NULL; 
-LPDIRECT3DTEXTURE9 pSpriteTextureImage = NULL;
+LPD3DXSPRITE pSprite, AiSprite1, AiSprite2, AiSprite3, AiSprite4, AiSprite5, AiSprite6 = NULL;
+LPDIRECT3DTEXTURE9 pSpriteTextureImage, AiSpriteTextureImage1, AiSpriteTextureImage2, AiSpriteTextureImage3, AiSpriteTextureImage4, AiSpriteTextureImage5, AiSpriteTextureImage6 = NULL;
 bool SpriteCreated = false;
 
 // COM utils
@@ -373,7 +389,15 @@ bool CreateSprite(IDirect3DDevice9* pDevice)
 {
 	HRESULT hr;
 
+	//D3DXCreateTextureFromFileEx(pDevice, pSrcFile, D3DX_DEFAULT, D3DX_DEFAULT, D3DX_DEFAULT, 0, D3DFMT_UNKNOWN, D3DPOOL_MANAGED, D3DX_DEFAULT, D3DX_DEFAULT, 0, NULL, NULL, ppTexture).
 	hr = D3DXCreateTextureFromFileA(pDevice, GetDirFile((PCHAR)"circle.png"), &pSpriteTextureImage);
+	hr = D3DXCreateTextureFromFileA(pDevice, GetDirFile((PCHAR)"AI\\1.png"), &AiSpriteTextureImage1);
+	hr = D3DXCreateTextureFromFileA(pDevice, GetDirFile((PCHAR)"AI\\2.png"), &AiSpriteTextureImage2);
+	hr = D3DXCreateTextureFromFileA(pDevice, GetDirFile((PCHAR)"AI\\3.png"), &AiSpriteTextureImage3);
+	hr = D3DXCreateTextureFromFileA(pDevice, GetDirFile((PCHAR)"AI\\4.png"), &AiSpriteTextureImage4);
+	hr = D3DXCreateTextureFromFileA(pDevice, GetDirFile((PCHAR)"AI\\5.png"), &AiSpriteTextureImage5);
+	hr = D3DXCreateTextureFromFileA(pDevice, GetDirFile((PCHAR)"AI\\6.png"), &AiSpriteTextureImage6);
+	//Log("GetDirFile == %s", GetDirFile((PCHAR)"AI\\1.png"));
 
 	if (FAILED(hr))
 	{
@@ -383,6 +407,12 @@ bool CreateSprite(IDirect3DDevice9* pDevice)
 	}
 
 	hr = D3DXCreateSprite(pDevice, &pSprite);
+	hr = D3DXCreateSprite(pDevice, &AiSprite1);
+	hr = D3DXCreateSprite(pDevice, &AiSprite2);
+	hr = D3DXCreateSprite(pDevice, &AiSprite3);
+	hr = D3DXCreateSprite(pDevice, &AiSprite4);
+	hr = D3DXCreateSprite(pDevice, &AiSprite5);
+	hr = D3DXCreateSprite(pDevice, &AiSprite6);
 
 	if (FAILED(hr))
 	{
@@ -403,6 +433,12 @@ void DeleteSprite()
 	{
 		//Log("SafeRelease(pSprite)");
 		SafeRelease(pSprite);
+		SafeRelease(AiSprite1);
+		SafeRelease(AiSprite2);
+		SafeRelease(AiSprite3);
+		SafeRelease(AiSprite4);
+		SafeRelease(AiSprite5);
+		SafeRelease(AiSprite6);
 	}
 
 	SpriteCreated = false;
@@ -411,13 +447,13 @@ void DeleteSprite()
 // Draw Sprite
 void DrawPic(IDirect3DDevice9* pDevice, IDirect3DTexture9 *tex, int cx, int cy)
 {
-	if (SpriteCreated && pSprite != NULL)
+	if (SpriteCreated && pSprite != NULL && cx < (int)Viewport.Width && cy < (int)Viewport.Height)
 	{
 		//position = PicSize(in pixel) / 2, 
 		//64 -> 32
 		D3DXVECTOR3 position;
-		position.x = (float)cx-32.0f;
-		position.y = (float)cy-32.0f;
+		position.x = (float)cx - 32.0f;
+		position.y = (float)cy - 32.0f;
 		position.z = 0.0f;
 
 		//draw pic
@@ -425,6 +461,98 @@ void DrawPic(IDirect3DDevice9* pDevice, IDirect3DTexture9 *tex, int cx, int cy)
 		pSprite->Draw(tex, NULL, NULL, &position, 0xFFFFFFFF);
 		pSprite->End();
 	}
+}
+
+// Draw Animation
+ULONGLONG AiTime = 0; //windowsuptime
+ULONGLONG AiStartTime = 0; //time as the timer started
+void DrawAnim(IDirect3DDevice9* pDevice, int cx, int cy, float scalex, float scaley, float scalez)
+{
+	if (SpriteCreated && AiSprite1 != NULL && cx < (int)Viewport.Width && cy < (int)Viewport.Height)
+	{
+		//position = PicSize(in pixel) / 2, 
+		D3DXVECTOR3 position;
+		position.x = (float)cx - 64.0f;
+		position.y = (float)cy - 50.0f;
+		position.z = 0.0f;
+
+		//timer
+		AiTime = GetTickCount64() / 160;//speed
+		if (AiTime - AiStartTime > 5)//starttime sec
+			AiStartTime = GetTickCount64() / 160;//speed
+
+		//ai scale
+		D3DXMATRIX scaleMatrix;
+		D3DXMATRIX transMatrix;
+		D3DXMatrixScaling(&scaleMatrix, scalex, scaley, scalez);//scale
+		D3DXMatrixTranslation(&transMatrix, 0.0f, 0.0f, 0.0f);
+		D3DXMatrixMultiply(&transMatrix, &scaleMatrix, &transMatrix);
+
+		//draw animation
+		if (AiTime - AiStartTime == 0)
+		{
+			AiSprite1->SetTransform(&transMatrix);
+			AiSprite1->Begin(D3DXSPRITE_ALPHABLEND);
+			AiSprite1->Draw(AiSpriteTextureImage1, NULL, NULL, &position, 0xFFFFFFFF);
+			AiSprite1->End();
+		}
+
+		if (AiTime - AiStartTime == 1)
+		{
+			AiSprite2->SetTransform(&transMatrix);
+			AiSprite2->Begin(D3DXSPRITE_ALPHABLEND);
+			AiSprite2->Draw(AiSpriteTextureImage2, NULL, NULL, &position, 0xFFFFFFFF);
+			AiSprite2->End();
+		}
+
+		if (AiTime - AiStartTime == 2)
+		{
+			AiSprite3->SetTransform(&transMatrix);
+			AiSprite3->Begin(D3DXSPRITE_ALPHABLEND);
+			AiSprite3->Draw(AiSpriteTextureImage3, NULL, NULL, &position, 0xFFFFFFFF);
+			AiSprite3->End();
+		}
+
+		if (AiTime - AiStartTime == 3)
+		{
+			AiSprite4->SetTransform(&transMatrix);
+			AiSprite4->Begin(D3DXSPRITE_ALPHABLEND);
+			AiSprite4->Draw(AiSpriteTextureImage4, NULL, NULL, &position, 0xFFFFFFFF);
+			AiSprite4->End();
+		}
+
+		if (AiTime - AiStartTime == 4)
+		{
+			AiSprite5->SetTransform(&transMatrix);
+			AiSprite5->Begin(D3DXSPRITE_ALPHABLEND);
+			AiSprite5->Draw(AiSpriteTextureImage5, NULL, NULL, &position, 0xFFFFFFFF);
+			AiSprite5->End();
+		}
+
+		if (AiTime - AiStartTime == 5)
+		{
+			AiSprite6->SetTransform(&transMatrix);
+			AiSprite6->Begin(D3DXSPRITE_ALPHABLEND);
+			AiSprite6->Draw(AiSpriteTextureImage6, NULL, NULL, &position, 0xFFFFFFFF);
+			AiSprite6->End();
+		}
+	}
+}
+
+//==========================================================================================================================
+
+//draw directly to target
+void DrawtoTarget(IDirect3DDevice9* pDevice)
+{
+	float pointSize = 5.0f;
+	pDevice->SetRenderState(D3DRS_POINTSPRITEENABLE, FALSE);//unatco?
+	pDevice->SetRenderState(D3DRS_POINTSCALEENABLE, FALSE);//no, savage
+	pDevice->SetRenderState(D3DRS_POINTSIZE, *((DWORD*)&pointSize));//the secondary unit should be online within six months
+	pDevice->SetRenderState(D3DRS_POINTSIZE_MAX, *((DWORD*)&pointSize));//will be operational in six months
+	pDevice->SetRenderState(D3DRS_POINTSIZE_MIN, *((DWORD*)&pointSize));//report on its progress within six months
+	pDevice->SetRenderState(D3DRS_STENCILENABLE, FALSE);//within a week there will be old men running the world!
+	//pDevice->SetRenderState(D3DRS_POINTSCALE_A, *((DWORD*)&pointSize));//no, within six months
+	pDevice->SetRenderState(D3DRS_STENCILENABLE, TRUE);//old men, are the future
 }
 
 //==========================================================================================================================
@@ -567,6 +695,7 @@ void SaveCfg()
 	fout << "autoshoot " << autoshoot << endl;
 	fout << "nograss " << nograss << endl;
 	fout << "nofog " << nofog << endl;
+	fout << "depthcheck " << depthcheck << endl;
 	fout.close();
 }
 
@@ -589,6 +718,7 @@ void LoadCfg()
 	fin >> Word >> autoshoot;
 	fin >> Word >> nograss;
 	fin >> Word >> nofog;
+	fin >> Word >> depthcheck;
 	fin.close();
 }
 
@@ -892,12 +1022,13 @@ void DrawMenu(LPDIRECT3DDEVICE9 pDevice)
 		AddItem(pDevice, (PCHAR)"Autoshoot", autoshoot, opt_autoshoot, 1);
 		AddItem(pDevice, (PCHAR)"No Grass", nograss, opt_OnOff, 1);
 		AddItem(pDevice, (PCHAR)"No Fog", nofog, opt_OnOff, 1);
+		AddItem(pDevice, (PCHAR)"DepthCheck", depthcheck, opt_OnOff, 1);
 
 		if (menuselect >= Current)
 			menuselect = 1;
 
 		if (menuselect < 1)
-			menuselect = 14;//Current;
+			menuselect = 15;//Current;
 	}
 }
 
