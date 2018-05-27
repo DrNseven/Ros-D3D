@@ -53,8 +53,10 @@ UINT vSize;
 IDirect3DPixelShader9* pShader;
 UINT pSize;
 
+D3DVERTEXBUFFER_DESC vdesc;
+
 bool InitOnce = true;
-LPDIRECT3DTEXTURE9 Red, Green, Blue, Yellow;
+LPDIRECT3DTEXTURE9 Red, Green, Blue, Yellow, White, Black;
 
 int countnum = -1;
 
@@ -66,6 +68,9 @@ D3DSURFACE_DESC sDesc;
 IDirect3DVertexDeclaration9* pDecl;
 D3DVERTEXELEMENT9 decl[MAXD3DDECLLENGTH];
 UINT numElements;
+
+DWORD qCRC;
+D3DLOCKED_RECT pLockedRect;
 
 //==========================================================================================================================
 
@@ -122,23 +127,23 @@ void Log(const char *fmt, ...)
 	logfile.close();
 }
 
-void doDisassembleShader(LPDIRECT3DDEVICE9 pDevice, char* FileName)
+DWORD QuickChecksum(DWORD *pData, int size)
 {
-	std::ofstream oLogFile(FileName, std::ios::trunc);
-	if (!oLogFile.is_open())
-		return;
-	IDirect3DVertexShader9* pShader;
-	pDevice->GetVertexShader(&pShader);
-	UINT pSizeOfData;
-	pShader->GetFunction(NULL, &pSizeOfData);
-	BYTE* pData = new BYTE[pSizeOfData];
-	pShader->GetFunction(pData, &pSizeOfData);
-	LPD3DXBUFFER bOut;
-	D3DXDisassembleShader(reinterpret_cast<DWORD*>(pData), NULL, NULL, &bOut);
-	oLogFile << static_cast<char*>(bOut->GetBufferPointer()) << std::endl;
-	oLogFile.close();
-	delete[] pData;
-	pShader->Release();
+	if (!pData) { return 0x0; }
+
+	DWORD sum;
+	DWORD tmp;
+	sum = *pData;
+
+	for (int i = 1; i < (size / 4); i++)
+	{
+		tmp = pData[i];
+		tmp = (DWORD)(sum >> 29) + tmp;
+		tmp = (DWORD)(sum >> 17) + tmp;
+		sum = (DWORD)(sum << 3) ^ tmp;
+	}
+
+	return sum;
 }
 
 //==========================================================================================================================

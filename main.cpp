@@ -1,5 +1,5 @@
 /*
-* Ros D3D 1.4 by n7
+* Ros D3D 1.4b by n7
 How to compile:
 - compile with visual studio community 2017 (..\Microsoft Visual Studio\2017\Community\Common7\IDE\devenv.exe)
 - Go to file -> new project -> visual c++ -> windows desktop -> windows desktop wizard -> select empty dll
@@ -85,9 +85,11 @@ HRESULT APIENTRY SetTexture_hook(LPDIRECT3DDEVICE9 pDevice, DWORD Sampler, IDire
 
 		//generate texture
 		GenerateTexture(pDevice, &Red, D3DCOLOR_ARGB(255, 255, 0, 0));
-		//GenerateTexture(pDevice, &Green, D3DCOLOR_RGBA(0, 255, 0, 255));
-		//GenerateTexture(pDevice, &Blue, D3DCOLOR_ARGB(255, 0, 0, 255));
-		//GenerateTexture(pDevice, &Yellow, D3DCOLOR_ARGB(255, 255, 255, 0));
+		GenerateTexture(pDevice, &Green, D3DCOLOR_RGBA(0, 255, 0, 255));
+		GenerateTexture(pDevice, &Blue, D3DCOLOR_ARGB(255, 0, 0, 255));
+		GenerateTexture(pDevice, &Yellow, D3DCOLOR_ARGB(255, 255, 255, 0));
+		GenerateTexture(pDevice, &White, D3DCOLOR_ARGB(255, 255, 255, 255));
+		GenerateTexture(pDevice, &Black, D3DCOLOR_ARGB(0, 0, 0, 0));
 
 		//load settings
 		LoadCfg();
@@ -103,18 +105,6 @@ HRESULT APIENTRY SetTexture_hook(LPDIRECT3DDEVICE9 pDevice, DWORD Sampler, IDire
 			if (SUCCEEDED(vShader->GetFunction(NULL, &vSize)))
 				if (vShader != NULL) { vShader->Release(); vShader = NULL; }
 
-	//get pSize
-	if (SUCCEEDED(pDevice->GetPixelShader(&pShader)))
-		if (pShader != NULL)
-			if (SUCCEEDED(pShader->GetFunction(NULL, &pSize)))
-				if (pShader != NULL) { pShader->Release(); pShader = NULL; }
-
-	//grab data
-	pDevice->GetVertexDeclaration(&pDecl);
-	if (pDecl != NULL)
-		pDecl->GetDeclaration(decl, &numElements);
-	if (pDecl != NULL) { pDecl->Release(); pDecl = NULL; }
-
 	//model rec sample
 	//Stride == 20 && vSize == 2008
 	//Stride == 36 && vSize == 2356
@@ -122,8 +112,7 @@ HRESULT APIENTRY SetTexture_hook(LPDIRECT3DDEVICE9 pDevice, DWORD Sampler, IDire
 	if (wallhack>0)
 	{
 		pDevice->SetRenderState(D3DRS_DEPTHBIAS, 0);
-		if ( (vSize == 2356 || vSize == 900 ||vSize == 2008 || vSize == 640) || (Stride == 36 && vSize == 1436) || (Stride == 48 && vSize == 1436) || 
-			(vSize == 600) )//blood, gun shots & explosions
+		if ( (vSize == 2356 || vSize == 900 ||vSize == 2008 || vSize == 640) || (Stride == 36 && vSize == 1436) || (Stride == 48 && vSize == 1436) ) //vSize == 600 //blood, gun shots & explosions
 		{
 			if (wallhack == 2 && vSize != 1436)
 			{
@@ -163,36 +152,109 @@ HRESULT APIENTRY SetTexture_hook(LPDIRECT3DDEVICE9 pDevice, DWORD Sampler, IDire
 		pDevice->SetVertexShaderConstantF(25, matChest, 1);//chest
 	}
 
-	//draw square on heads if visible
+	//draw square on heads
 	if(depthcheck==1)
 	{
+		//get pSize
+		if (SUCCEEDED(pDevice->GetPixelShader(&pShader)))
+			if (pShader != NULL)
+				if (SUCCEEDED(pShader->GetFunction(NULL, &pSize)))
+					if (pShader != NULL) { pShader->Release(); pShader = NULL; }
+
+		//grab data
+		pDevice->GetVertexDeclaration(&pDecl);
+		if (pDecl != NULL)
+			pDecl->GetDeclaration(decl, &numElements);
+		if (pDecl != NULL) { pDecl->Release(); pDecl = NULL; }
+		
+		//get texture/desc size
+		if (numElements == 6 && Sampler == 0 && pTexture)
+		{
+			texture = static_cast<IDirect3DTexture9*>(pTexture);
+			if (texture)
+			{
+				if (FAILED(texture->GetLevelDesc(0, &sDesc)))
+				{
+					goto out;
+				}
+
+				if (sDesc.Pool == D3DPOOL_MANAGED && texture->GetType() == D3DRTYPE_TEXTURE && sDesc.Width == 512 && sDesc.Height == 512)
+				{
+					HRESULT hr = texture->LockRect(0, &pLockedRect, NULL, D3DLOCK_DONOTWAIT | D3DLOCK_READONLY | D3DLOCK_NOSYSLOCK);
+
+					if (SUCCEEDED(hr))
+					{
+						if (pLockedRect.pBits != NULL)
+							qCRC = QuickChecksum((DWORD*)pLockedRect.pBits, pLockedRect.Pitch); //get crc
+							//qCRC = QuickChecksum((DWORD*)pLockedRect.pBits, 12);
+					}
+					texture->UnlockRect(0);
+				}
+			}
+		}
+		out:
+
+		
+		if (Stride == 36 && vSize == 2008 && pSize == 1724) //helmet
+		if (GetAsyncKeyState(VK_F10) & 1)
+		Log("Stride == %d && vSize == %d && pSize == %d && pLockedRect.Pitch == %d && qCRC == %x && qCRC == %d && numElements == %d && decl->Type == %d", Stride, vSize, pSize, pLockedRect.Pitch, qCRC, qCRC, numElements, decl->Type);
+
+		//log hair
+		//if ((numElements == 6 || numElements == 10) && (vSize == 2356 && pSize != 1848))//hair
+		//if (GetAsyncKeyState(VK_F10) & 1)
+		//Log("Stride == %d && vSize == %d && pSize == %d && pLockedRect.Pitch == %d && qCRC == %x && numElements == %d && decl->Type == %d", Stride, vSize, pSize, pLockedRect.Pitch, qCRC, numElements, decl->Type);
+
+		//log helmet (logs wrong values most of the time)
+		//if (numElements == 6 && Stride == 36 && vSize == 2008 && pSize == 1724) //helmet
+			//if (GetAsyncKeyState(VK_F10) & 1)
+				//Log("Stride == %d && vSize == %d && pSize == %d && pLockedRect.Pitch == %d && qCRC == %x && qCRC == %d && numElements == %d && decl->Type == %d", Stride, vSize, pSize, pLockedRect.Pitch, qCRC, qCRC, numElements, decl->Type);
+
 		pDevice->SetRenderState(D3DRS_FILLMODE, D3DFILL_SOLID);
-		if( (numElements == 6|| numElements == 10) && (vSize == 2356 && pSize != 1848) )//hair
-		//if(numElements == 6 && vSize == 2356 && pSize == 2272|| numElements == 6 && vSize == 2356 && pSize == 2180)//incomplete
+
+		//green hair
+		if ( (Stride == 36 && vSize == 2356 && pSize != 1848 && pLockedRect.Pitch == 2048 && numElements == 6) || //hair	
+			(Stride == 44 && vSize == 2356 && pSize == 2272 && pLockedRect.Pitch == 1024 && numElements == 10) ) //hair2
+		{
+			SetTexture_orig(pDevice, 0, Green);
+			SetTexture_orig(pDevice, 1, Green);
+		}
+
+		//red helmets
+		if ( (vSize == 2008 && qCRC == 0xc46ee841)||//helmet 1
+			(vSize == 2008 && qCRC == 0x9590d282)||//helmet 2
+			(vSize == 2008 && qCRC == 0xe248e914) )//helmet 3
 		{
 			SetTexture_orig(pDevice, 0, Red);
 			SetTexture_orig(pDevice, 1, Red);
+		}
+
+		//make bigger
+		if( (Stride == 36 && vSize == 2356 && pSize != 1848 && pLockedRect.Pitch == 2048 && numElements == 6) || //hair	
+			(Stride == 44 && vSize == 2356 && pSize == 2272 && pLockedRect.Pitch == 1024 && numElements == 10) || //hair2
+			(vSize == 2008 && qCRC == 0xc46ee841) ||//helmet 1
+			(vSize == 2008 && qCRC == 0x9590d282) ||//helmet 2
+			(vSize == 2008 && qCRC == 0xe248e914))//helmet 3
+		{
 			pDevice->SetRenderState(D3DRS_DEPTHBIAS, 0);
 			pDevice->SetRenderState(D3DRS_FILLMODE, D3DFILL_POINT);
 			DrawtoTarget(pDevice);
 		}
 	}
-	
+
 	/*
 	//logger
 	if (GetAsyncKeyState('O') & 1) //-
 	countnum--;
 	if (GetAsyncKeyState('P') & 1) //+
 	countnum++;
-	if (countnum == pSize / 100)
+	if (countnum == vSize / 100)//Stride)
 	if (GetAsyncKeyState('I') & 1) //log
-	Log("Stride == %d && vSize == %d && pSize == %d && sDesc.Width == %d && numElements == %d && decl->Type == %d", Stride, vSize, pSize, sDesc.Width, numElements, decl->Type);
-	if (countnum == pSize / 100)
+		Log("Stride == %d && vSize == %d && pSize == %d && sDesc.Width == %d && qCRC == %x && numElements == %d && decl->Type == %d", Stride, vSize, pSize, sDesc.Width, qCRC, numElements, decl->Type);
+	if (countnum == vSize / 100)//Stride)
 	{
 		//SetTexture_orig(pDevice, 0, Yellow);
 		//SetTexture_orig(pDevice, 1, Yellow);
 		return D3D_OK; //delete texture
-		//pDevice->SetRenderState(D3DRS_FILLMODE, D3DFILL_WIREFRAME);
 	}
 	*/
 	return SetTexture_orig(pDevice, Sampler, pTexture);
