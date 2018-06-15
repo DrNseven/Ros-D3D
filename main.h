@@ -1,25 +1,16 @@
-//includes
-#include <Windows.h>
-#include <process.h>
-#include <stdio.h>
+#include <windows.h>
 #include <fstream>
 #include <string>
 #include <vector>
-#include <time.h>
+#include <d3d9.h>
+#pragma comment(lib, "d3d9.lib")
 #pragma comment(lib, "winmm.lib")//time
 
-#pragma comment(lib, "d3d9.lib")
-#include <d3d9.h>
-
-//detours
-#pragma comment(lib, "detours.lib")
-#include "detours.h"
-
-//dxsdk
-//#include <d3dx9.h>
+//dx sdk 
+//#include <d3dx9.h"
 //#pragma comment(lib, "d3dx9.lib")
 
-//dxsdk with custom dir
+//dx sdk if files are in ..\DXSDK dir
 #include "DXSDK\d3dx9.h"
 #if defined _M_X64
 #pragma comment(lib, "DXSDK/x64/d3dx9.lib") 
@@ -27,11 +18,23 @@
 #pragma comment(lib, "DXSDK/x86/d3dx9.lib")
 #endif
 
+//if using ms detours
+//#include "detours\detours.h"
+//#pragma comment(lib, "detours/Detours.lib")
+
+//if using DX Includes
+//#include <DirectXMath.h>
+//using namespace DirectX;
+
+//if using minhook where files are in MinHook dir
+#include "MinHook/include/MinHook.h" //detour
 using namespace std;
 
 #pragma warning (disable: 4244) 
-//#pragma warning (disable: 4996)
+#pragma warning (disable: 4996)
 #define _CRT_SECURE_NO_DEPRECATE
+
+//==========================================================================================================================
 
 //==========================================================================================================================
 
@@ -89,7 +92,7 @@ int nograss = 1;				//nograss
 int nofog = 1;					//nofog
 int depthcheck = 1;				//draw square on heads which are not behind walls 
 
-//aimbot settings
+								//aimbot settings
 int aimbot = 1;
 int aimkey = 2;
 DWORD Daimkey = VK_RBUTTON;		//aimkey
@@ -102,9 +105,9 @@ int autoshoot = 0;
 unsigned int asdelay = 49;		//use x-999 (shoot for xx millisecs, looks more legit)
 bool IsPressed = false;			//
 DWORD astime = timeGetTime();	//autoshoot timer
-//==========================================================================================================================
+								//==========================================================================================================================
 
-// getdir & log
+								// getdir & log
 char dlldir[320];
 char* GetDirFile(char *name)
 {
@@ -376,188 +379,188 @@ VOID DrawLine2(IDirect3DDevice9* pDevice, FLOAT startx, FLOAT starty, FLOAT endx
 //=====================================================================================================================
 
 // draw sprite
-LPD3DXSPRITE pSprite, AiSprite1, AiSprite2, AiSprite3, AiSprite4, AiSprite5, AiSprite6 = NULL;
-LPDIRECT3DTEXTURE9 pSpriteTextureImage, AiSpriteTextureImage1, AiSpriteTextureImage2, AiSpriteTextureImage3, AiSpriteTextureImage4, AiSpriteTextureImage5, AiSpriteTextureImage6 = NULL;
-bool SpriteCreated = false;
+LPD3DXSPRITE pSpritea, AiSprite1a, AiSprite2a, AiSprite3a, AiSprite4a, AiSprite5a, AiSprite6a = NULL;
+LPDIRECT3DTEXTURE9 pSpriteTextureImagea, AiSpriteTextureImage1a, AiSpriteTextureImage2a, AiSpriteTextureImage3a, AiSpriteTextureImage4a, AiSpriteTextureImage5a, AiSpriteTextureImage6a = NULL;
+bool SpriteCreateda = false;
 
 // COM utils
 template<class COMObject>
-void SafeRelease(COMObject*& pRes)
+void SafeReleasea(COMObject*& pResa)
 {
-	IUnknown *unknown = pRes;
-	if (unknown)
+	IUnknown *unknowna = pResa;
+	if (unknowna)
 	{
-		unknown->Release();
+		unknowna->Release();
 	}
-	pRes = NULL;
+	pResa = NULL;
 }
 
-bool CreateSprite(IDirect3DDevice9* pDevice)
+bool CreateSpritea(IDirect3DDevice9* pDevice)
 {
-	HRESULT hr;
+	HRESULT hra;
 
 	//D3DXCreateTextureFromFileEx(pDevice, pSrcFile, D3DX_DEFAULT, D3DX_DEFAULT, D3DX_DEFAULT, 0, D3DFMT_UNKNOWN, D3DPOOL_MANAGED, D3DX_DEFAULT, D3DX_DEFAULT, 0, NULL, NULL, ppTexture).
-	hr = D3DXCreateTextureFromFileA(pDevice, GetDirFile((PCHAR)"circle.png"), &pSpriteTextureImage);
-	hr = D3DXCreateTextureFromFileA(pDevice, GetDirFile((PCHAR)"AI\\1.png"), &AiSpriteTextureImage1);
-	hr = D3DXCreateTextureFromFileA(pDevice, GetDirFile((PCHAR)"AI\\2.png"), &AiSpriteTextureImage2);
-	hr = D3DXCreateTextureFromFileA(pDevice, GetDirFile((PCHAR)"AI\\3.png"), &AiSpriteTextureImage3);
-	hr = D3DXCreateTextureFromFileA(pDevice, GetDirFile((PCHAR)"AI\\4.png"), &AiSpriteTextureImage4);
-	hr = D3DXCreateTextureFromFileA(pDevice, GetDirFile((PCHAR)"AI\\5.png"), &AiSpriteTextureImage5);
-	hr = D3DXCreateTextureFromFileA(pDevice, GetDirFile((PCHAR)"AI\\6.png"), &AiSpriteTextureImage6);
+	hra = D3DXCreateTextureFromFileA(pDevice, GetDirFile((PCHAR)"circlea.png"), &pSpriteTextureImagea);
+	hra = D3DXCreateTextureFromFileA(pDevice, GetDirFile((PCHAR)"AI\\1a.png"), &AiSpriteTextureImage1a);
+	hra = D3DXCreateTextureFromFileA(pDevice, GetDirFile((PCHAR)"AI\\2a.png"), &AiSpriteTextureImage2a);
+	hra = D3DXCreateTextureFromFileA(pDevice, GetDirFile((PCHAR)"AI\\3a.png"), &AiSpriteTextureImage3a);
+	hra = D3DXCreateTextureFromFileA(pDevice, GetDirFile((PCHAR)"AI\\4a.png"), &AiSpriteTextureImage4a);
+	hra = D3DXCreateTextureFromFileA(pDevice, GetDirFile((PCHAR)"AI\\5a.png"), &AiSpriteTextureImage5a);
+	hra = D3DXCreateTextureFromFileA(pDevice, GetDirFile((PCHAR)"AI\\6a.png"), &AiSpriteTextureImage6a);
 	//Log("GetDirFile == %s", GetDirFile((PCHAR)"AI\\1.png"));
 
-	if (FAILED(hr))
+	if (FAILED(hra))
 	{
 		//Log("D3DXCreateTextureFromFile failed");
-		SpriteCreated = false;
+		SpriteCreateda = false;
 		return false;
 	}
 
-	hr = D3DXCreateSprite(pDevice, &pSprite);
-	hr = D3DXCreateSprite(pDevice, &AiSprite1);
-	hr = D3DXCreateSprite(pDevice, &AiSprite2);
-	hr = D3DXCreateSprite(pDevice, &AiSprite3);
-	hr = D3DXCreateSprite(pDevice, &AiSprite4);
-	hr = D3DXCreateSprite(pDevice, &AiSprite5);
-	hr = D3DXCreateSprite(pDevice, &AiSprite6);
+	hra = D3DXCreateSprite(pDevice, &pSpritea);
+	hra = D3DXCreateSprite(pDevice, &AiSprite1a);
+	hra = D3DXCreateSprite(pDevice, &AiSprite2a);
+	hra = D3DXCreateSprite(pDevice, &AiSprite3a);
+	hra = D3DXCreateSprite(pDevice, &AiSprite4a);
+	hra = D3DXCreateSprite(pDevice, &AiSprite5a);
+	hra = D3DXCreateSprite(pDevice, &AiSprite6a);
 
-	if (FAILED(hr))
+	if (FAILED(hra))
 	{
 		//Log("D3DXCreateSprite failed");
-		SpriteCreated = false;
+		SpriteCreateda = false;
 		return false;
 	}
 
-	SpriteCreated = true;
+	SpriteCreateda = true;
 
 	return true;
 }
 
 // Delete work surfaces when device gets reset
-void DeleteSprite()
+void DeleteSpritea()
 {
-	if (pSprite != NULL)
+	if (pSpritea != NULL)
 	{
 		//Log("SafeRelease(pSprite)");
-		SafeRelease(pSprite);
-		SafeRelease(AiSprite1);
-		SafeRelease(AiSprite2);
-		SafeRelease(AiSprite3);
-		SafeRelease(AiSprite4);
-		SafeRelease(AiSprite5);
-		SafeRelease(AiSprite6);
+		SafeReleasea(pSpritea);
+		SafeReleasea(AiSprite1a);
+		SafeReleasea(AiSprite2a);
+		SafeReleasea(AiSprite3a);
+		SafeReleasea(AiSprite4a);
+		SafeReleasea(AiSprite5a);
+		SafeReleasea(AiSprite6a);
 	}
 
-	SpriteCreated = false;
+	SpriteCreateda = false;
 }
 
 // Draw Sprite
-void DrawPic(IDirect3DDevice9* pDevice, IDirect3DTexture9 *tex, int cx, int cy)
+void DrawPica(IDirect3DDevice9* pDevice, IDirect3DTexture9 *tex, int cx, int cy)
 {
-	if (SpriteCreated && pSprite != NULL && cx < (int)Viewport.Width && cy < (int)Viewport.Height)
+	if (SpriteCreateda && pSpritea != NULL && cx < (int)Viewport.Width && cy < (int)Viewport.Height)
 	{
 		//position = PicSize(in pixel) / 2, 
 		//64 -> 32
-		D3DXVECTOR3 position;
-		position.x = (float)cx - 32.0f;
-		position.y = (float)cy - 32.0f;
-		position.z = 0.0f;
+		D3DXVECTOR3 positiona;
+		positiona.x = (float)cx - 32.0f;
+		positiona.y = (float)cy - 32.0f;
+		positiona.z = 0.0f;
 
 		//draw pic
-		pSprite->Begin(D3DXSPRITE_ALPHABLEND);
-		pSprite->Draw(tex, NULL, NULL, &position, 0xFFFFFFFF);
-		pSprite->End();
+		pSpritea->Begin(D3DXSPRITE_ALPHABLEND);
+		pSpritea->Draw(tex, NULL, NULL, &positiona, 0xFFFFFFFF);
+		pSpritea->End();
 	}
 }
 
 // Draw Animation
-ULONGLONG AiTime = 0; //windowsuptime
-ULONGLONG AiStartTime = 0; //time as the timer started
-void DrawAnim(IDirect3DDevice9* pDevice, int cx, int cy, float scalex, float scaley, float scalez)
+ULONGLONG AiTimea = 0; //windowsuptime
+ULONGLONG AiStartTimea = 0; //time as the timer started
+void DrawAnima(IDirect3DDevice9* pDevice, int cxa, int cya, float scalexa, float scaleya, float scaleza)
 {
-	if (SpriteCreated && AiSprite1 != NULL && cx < (int)Viewport.Width && cy < (int)Viewport.Height)
+	if (SpriteCreateda && AiSprite1a != NULL && cxa < (int)Viewport.Width && cya < (int)Viewport.Height)
 	{
 		//position = PicSize(in pixel) / 2, 
-		D3DXVECTOR3 position;
-		position.x = (float)cx - 64.0f;
-		position.y = (float)cy - 50.0f;
-		position.z = 0.0f;
+		D3DXVECTOR3 positiona;
+		positiona.x = (float)cxa - 64.0f;
+		positiona.y = (float)cya - 50.0f;
+		positiona.z = 0.0f;
 
 		//timer
-		AiTime = GetTickCount64() / 160;//speed
-		if (AiTime - AiStartTime > 4)//starttime sec
-			AiStartTime = GetTickCount64() / 160;//speed
+		AiTimea = GetTickCount64() / 160;//speed
+		if (AiTimea - AiStartTimea > 4)//starttime sec
+			AiStartTimea = GetTickCount64() / 160;//speed
 
-												 //ai scale
-		D3DXMATRIX scaleMatrix;
-		D3DXMATRIX transMatrix;
-		D3DXMatrixScaling(&scaleMatrix, scalex, scaley, scalez);//scale
-		D3DXMatrixTranslation(&transMatrix, 0.0f, 0.0f, 0.0f);
-		D3DXMatrixMultiply(&transMatrix, &scaleMatrix, &transMatrix);
+		//ai scale
+		D3DXMATRIX scaleMatrixa;
+		D3DXMATRIX transMatrixa;
+		D3DXMatrixScaling(&scaleMatrixa, scalexa, scaleya, scaleza);//scale
+		D3DXMatrixTranslation(&transMatrixa, 0.0f, 0.0f, 0.0f);
+		D3DXMatrixMultiply(&transMatrixa, &scaleMatrixa, &transMatrixa);
 
 		//draw animation
-		if (AiTime - AiStartTime == 0)
+		if (AiTimea - AiStartTimea == 0)
 		{
-			AiSprite1->SetTransform(&transMatrix);
-			AiSprite1->Begin(D3DXSPRITE_ALPHABLEND);
-			AiSprite1->Draw(AiSpriteTextureImage1, NULL, NULL, &position, 0xFFFFFFFF);
-			AiSprite1->End();
+			AiSprite1a->SetTransform(&transMatrixa);
+			AiSprite1a->Begin(D3DXSPRITE_ALPHABLEND);
+			AiSprite1a->Draw(AiSpriteTextureImage1a, NULL, NULL, &positiona, 0xFFFFFFFF);
+			AiSprite1a->End();
 		}
 
-		if (AiTime - AiStartTime == 1)
+		if (AiTimea - AiStartTimea == 1)
 		{
-			AiSprite2->SetTransform(&transMatrix);
-			AiSprite2->Begin(D3DXSPRITE_ALPHABLEND);
-			AiSprite2->Draw(AiSpriteTextureImage2, NULL, NULL, &position, 0xFFFFFFFF);
-			AiSprite2->End();
+			AiSprite2a->SetTransform(&transMatrixa);
+			AiSprite2a->Begin(D3DXSPRITE_ALPHABLEND);
+			AiSprite2a->Draw(AiSpriteTextureImage2a, NULL, NULL, &positiona, 0xFFFFFFFF);
+			AiSprite2a->End();
 		}
 
-		if (AiTime - AiStartTime == 2)
+		if (AiTimea - AiStartTimea == 2)
 		{
-			AiSprite3->SetTransform(&transMatrix);
-			AiSprite3->Begin(D3DXSPRITE_ALPHABLEND);
-			AiSprite3->Draw(AiSpriteTextureImage3, NULL, NULL, &position, 0xFFFFFFFF);
-			AiSprite3->End();
+			AiSprite3a->SetTransform(&transMatrixa);
+			AiSprite3a->Begin(D3DXSPRITE_ALPHABLEND);
+			AiSprite3a->Draw(AiSpriteTextureImage3a, NULL, NULL, &positiona, 0xFFFFFFFF);
+			AiSprite3a->End();
 		}
 
-		if (AiTime - AiStartTime == 3)
+		if (AiTimea - AiStartTimea == 3)
 		{
-			AiSprite4->SetTransform(&transMatrix);
-			AiSprite4->Begin(D3DXSPRITE_ALPHABLEND);
-			AiSprite4->Draw(AiSpriteTextureImage4, NULL, NULL, &position, 0xFFFFFFFF);
-			AiSprite4->End();
+			AiSprite4a->SetTransform(&transMatrixa);
+			AiSprite4a->Begin(D3DXSPRITE_ALPHABLEND);
+			AiSprite4a->Draw(AiSpriteTextureImage4a, NULL, NULL, &positiona, 0xFFFFFFFF);
+			AiSprite4a->End();
 		}
 
-		if (AiTime - AiStartTime == 4)
+		if (AiTimea - AiStartTimea == 4)
 		{
-			AiSprite5->SetTransform(&transMatrix);
-			AiSprite5->Begin(D3DXSPRITE_ALPHABLEND);
-			AiSprite5->Draw(AiSpriteTextureImage5, NULL, NULL, &position, 0xFFFFFFFF);
-			AiSprite5->End();
+			AiSprite5a->SetTransform(&transMatrixa);
+			AiSprite5a->Begin(D3DXSPRITE_ALPHABLEND);
+			AiSprite5a->Draw(AiSpriteTextureImage5a, NULL, NULL, &positiona, 0xFFFFFFFF);
+			AiSprite5a->End();
 		}
-		/*
-		if (AiTime - AiStartTime == 5)
+		
+		if (AiTimea - AiStartTimea == 5)
 		{
-		AiSprite6->SetTransform(&transMatrix);
-		AiSprite6->Begin(D3DXSPRITE_ALPHABLEND);
-		AiSprite6->Draw(AiSpriteTextureImage6, NULL, NULL, &position, 0xFFFFFFFF);
-		AiSprite6->End();
+		AiSprite6a->SetTransform(&transMatrixa);
+		AiSprite6a->Begin(D3DXSPRITE_ALPHABLEND);
+		AiSprite6a->Draw(AiSpriteTextureImage6a, NULL, NULL, &positiona, 0xFFFFFFFF);
+		AiSprite6a->End();
 		}
-		*/
+		
 	}
 }
 
 //==========================================================================================================================
 
 //draw directly to target
-void DrawtoTarget(IDirect3DDevice9* pDevice)
+void DrawonTargetA(IDirect3DDevice9* pDevice)
 {
-	float pointSize = 5.0f;
+	float pointSizea = 5.0f;
 	pDevice->SetRenderState(D3DRS_POINTSPRITEENABLE, FALSE);//unatco?
 	pDevice->SetRenderState(D3DRS_POINTSCALEENABLE, FALSE);//no, savage
-	pDevice->SetRenderState(D3DRS_POINTSIZE, *((DWORD*)&pointSize));//the secondary unit should be online within six months
-	pDevice->SetRenderState(D3DRS_POINTSIZE_MAX, *((DWORD*)&pointSize));//will be operational in six months
-	pDevice->SetRenderState(D3DRS_POINTSIZE_MIN, *((DWORD*)&pointSize));//report on its progress within six months
+	pDevice->SetRenderState(D3DRS_POINTSIZE, *((DWORD*)&pointSizea));//the secondary unit should be online within six months
+	pDevice->SetRenderState(D3DRS_POINTSIZE_MAX, *((DWORD*)&pointSizea));//will be operational in six months
+	pDevice->SetRenderState(D3DRS_POINTSIZE_MIN, *((DWORD*)&pointSizea));//report on its progress within six months
 	pDevice->SetRenderState(D3DRS_STENCILENABLE, FALSE);//within a week there will be old men running the world!
 	//pDevice->SetRenderState(D3DRS_POINTSCALE_A, *((DWORD*)&pointSize));//no, within six months
 	pDevice->SetRenderState(D3DRS_STENCILENABLE, TRUE);//old men, are the future
@@ -954,13 +957,13 @@ void DrawMenu(LPDIRECT3DDEVICE9 pDevice)
 		}
 		AddGroup(pDevice, (PCHAR)"[-=MISC SETTINGS=-]", misc_group, opt_OnOff, 1);
 		if (misc_group) {
-		AddItem(pDevice, (PCHAR)"Wallhack", wallhack, opt_WhChams, 2);
-		AddItem(pDevice, (PCHAR)"Autoshoot", autoshoot, opt_autoshoot, 1);
-		AddItem(pDevice, (PCHAR)"No Grass", nograss, opt_OnOff, 1);
-		AddItem(pDevice, (PCHAR)"No Fog", nofog, opt_OnOff, 1);
-		AddItem(pDevice, (PCHAR)"DepthCheck", depthcheck, opt_OnOff, 1);
+			AddItem(pDevice, (PCHAR)"Wallhack", wallhack, opt_WhChams, 2);
+			AddItem(pDevice, (PCHAR)"Autoshoot", autoshoot, opt_autoshoot, 1);
+			AddItem(pDevice, (PCHAR)"No Grass", nograss, opt_OnOff, 1);
+			AddItem(pDevice, (PCHAR)"No Fog", nofog, opt_OnOff, 1);
+			AddItem(pDevice, (PCHAR)"DepthCheck", depthcheck, opt_OnOff, 1);
 		}
-	
+
 		if (menuselect >= Current)
 			menuselect = 1;
 
@@ -968,4 +971,3 @@ void DrawMenu(LPDIRECT3DDEVICE9 pDevice)
 			menuselect = 18;//Current;
 	}
 }
-
