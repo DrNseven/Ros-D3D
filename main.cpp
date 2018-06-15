@@ -1,76 +1,58 @@
-/*
-* Ros D3D 1.4b by n7
-How to compile:
-- compile with visual studio community 2017 (..\Microsoft Visual Studio\2017\Community\Common7\IDE\devenv.exe)
-- Go to file -> new project -> visual c++ -> windows desktop -> windows desktop wizard -> select empty dll
-- select Release x86
-- click: project -> properties -> configuration properties -> general -> character set -> change to "not set"
-- compile with CTRL + Shift + B
-Optional: remove dependecy on vs runtime:
-- click: project -> properties -> configuration properties -> C/C++ -> code generation -> runtime library: Multi-threaded (/MT)
-*/
+//Ros D3D 1.5 by n7
+//
+//Credits: JoshRose
+//
+//how to fix safesh "error" with ms detours 1.5:
+//project -> properties -> configuration properties -> linker -> advanced -> image has safe exception handler -> No (/SAFESEH:NO)
 
-#include "main.h" //less important stuff & helper funcs here
 
-typedef HRESULT(APIENTRY *SetStreamSource_t)(IDirect3DDevice9*, UINT, IDirect3DVertexBuffer9*, UINT, UINT);
-HRESULT APIENTRY SetStreamSource_hook(IDirect3DDevice9*, UINT, IDirect3DVertexBuffer9*, UINT, UINT);
-SetStreamSource_t SetStreamSource_orig = 0;
+#include "main.h"
 
-typedef HRESULT(APIENTRY *SetTexture_t)(IDirect3DDevice9*, DWORD, IDirect3DBaseTexture9 *);
-HRESULT APIENTRY SetTexture_hook(IDirect3DDevice9*, DWORD, IDirect3DBaseTexture9 *);
-SetTexture_t SetTexture_orig = 0;
 
-typedef HRESULT(APIENTRY* Present_t) (IDirect3DDevice9*, const RECT *, const RECT *, HWND, const RGNDATA *);
-HRESULT APIENTRY Present_hook(IDirect3DDevice9*, const RECT *, const RECT *, HWND, const RGNDATA *);
-Present_t Present_orig = 0;
+typedef HRESULT(APIENTRY* tEndScene)(LPDIRECT3DDEVICE9 pDevice);
+tEndScene oEndScene = NULL;
 
-typedef HRESULT(APIENTRY *Reset_t)(IDirect3DDevice9*, D3DPRESENT_PARAMETERS*);
-HRESULT APIENTRY Reset_hook(IDirect3DDevice9*, D3DPRESENT_PARAMETERS*);
-Reset_t Reset_orig = 0;
+typedef HRESULT(APIENTRY* tSetStreamSource)(IDirect3DDevice9*, UINT, IDirect3DVertexBuffer9*, UINT, UINT);
+tSetStreamSource oSetStreamSource = 0;
 
-typedef HRESULT(APIENTRY *GetRenderTargetData_t)(IDirect3DDevice9*, IDirect3DSurface9 *pRenderTarget, IDirect3DSurface9 *pDestSurface);
-GetRenderTargetData_t oGetRenderTargetData = 0;
+typedef HRESULT(APIENTRY* tSetTexture)(IDirect3DDevice9*, DWORD, IDirect3DBaseTexture9 *);
+tSetTexture oSetTexture = 0;
 
-typedef HRESULT(APIENTRY *CreateOffscreenPlainSurface_t)(IDirect3DDevice9*, UINT Width, UINT Height, D3DFORMAT Format, D3DPOOL Pool, IDirect3DSurface9 **ppSurface, HANDLE *pSharedHandle);
-CreateOffscreenPlainSurface_t oCreateOffscreenPlainSurface = 0;
+typedef HRESULT(APIENTRY* tPresent) (IDirect3DDevice9*, const RECT *, const RECT *, HWND, const RGNDATA *);
+tPresent oPresent = 0;
+
+typedef HRESULT(APIENTRY* tReset)(IDirect3DDevice9*, D3DPRESENT_PARAMETERS*);
+tReset oReset = 0;
+
+//optional:
+//drawindexedprimitive
+
+//setvertexshaderconstantf
 
 //==========================================================================================================================
 
-HRESULT APIENTRY hkGetRenderTargetData(LPDIRECT3DDEVICE9 pDevice, IDirect3DSurface9 *pRenderTarget, IDirect3DSurface9 *pDestSurface)
+HRESULT APIENTRY hkEndScene(LPDIRECT3DDEVICE9 pDevice)
 {
-	screenshot_taken = true;
+	while (!npDevice) {
+		npDevice = pDevice;
+	}
 
-	return oGetRenderTargetData(pDevice, pRenderTarget, pDestSurface);
+	return oEndScene(pDevice);
 }
 
 //==========================================================================================================================
 
-HRESULT APIENTRY hkCreateOffscreenPlainSurface(LPDIRECT3DDEVICE9 pDevice, UINT Width, UINT Height, D3DFORMAT Format, D3DPOOL Pool, IDirect3DSurface9 **ppSurface, HANDLE *pSharedHandle)
-{
-	screenshot_taken = true;
-
-	//prevent local screenshot (is screenshot still uploaded to gm?)
-	Width = 1;
-	Height = 1;
-
-	Log("Screenshot blocked.");
-
-	return oCreateOffscreenPlainSurface(pDevice, Width, Height, Format, Pool, ppSurface, pSharedHandle);
-}
-
-//==========================================================================================================================
-
-HRESULT APIENTRY SetStreamSource_hook(LPDIRECT3DDEVICE9 pDevice, UINT StreamNumber, IDirect3DVertexBuffer9* pStreamData, UINT OffsetInBytes, UINT sStride)
+HRESULT APIENTRY hkSetStreamSource(LPDIRECT3DDEVICE9 pDevice, UINT StreamNumber, IDirect3DVertexBuffer9* pStreamData, UINT OffsetInBytes, UINT sStride)
 {
 	if (StreamNumber == 0)
 		Stride = sStride;
 
-	return SetStreamSource_orig(pDevice, StreamNumber, pStreamData, OffsetInBytes, sStride);
+	return oSetStreamSource(pDevice, StreamNumber, pStreamData, OffsetInBytes, sStride);
 }
 
 //==========================================================================================================================
 
-HRESULT APIENTRY SetTexture_hook(LPDIRECT3DDEVICE9 pDevice, DWORD Sampler, IDirect3DBaseTexture9 *pTexture)
+HRESULT APIENTRY hkSetTexture(LPDIRECT3DDEVICE9 pDevice, DWORD Sampler, IDirect3DBaseTexture9 *pTexture)
 {
 	//texture = static_cast<IDirect3DTexture9*>(pTexture);
 
@@ -96,8 +78,8 @@ HRESULT APIENTRY SetTexture_hook(LPDIRECT3DDEVICE9 pDevice, DWORD Sampler, IDire
 	}
 
 	//create ellipse shader
-	if(shaderesp == 1 && !ellipse)
-	DX9CreateEllipseShader(pDevice, &ellipse);
+	if (shaderesp == 1 && !ellipse)
+		DX9CreateEllipseShader(pDevice, &ellipse);
 
 	//get vSize
 	if (SUCCEEDED(pDevice->GetVertexShader(&vShader)))
@@ -112,14 +94,14 @@ HRESULT APIENTRY SetTexture_hook(LPDIRECT3DDEVICE9 pDevice, DWORD Sampler, IDire
 	if (wallhack>0)
 	{
 		pDevice->SetRenderState(D3DRS_DEPTHBIAS, 0);
-		if ( (vSize == 2356 || vSize == 900 ||vSize == 2008 || vSize == 640) || (Stride == 36 && vSize == 1436) || (Stride == 48 && vSize == 1436) ) //vSize == 600 //blood, gun shots & explosions
+		if ((vSize == 2356 || vSize == 900 || vSize == 2008 || vSize == 640) || (Stride == 36 && vSize == 1436) || (Stride == 48 && vSize == 1436)) //vSize == 600 //blood, gun shots & explosions
 		{
 			if (wallhack == 2 && vSize != 1436)
 			{
 				float sColor[4] = { 0.0f, 1.0f, 0.0f, 1.0f };//green
 				pDevice->SetPixelShaderConstantF(0, sColor, 1);
-				//SetTexture_orig(pDevice, 0, Red);
-				//SetTexture_orig(pDevice, 1, Red);
+				//oSetTexture(pDevice, 0, Red);
+				//oSetTexture(pDevice, 1, Red);
 			}
 
 			float bias = 1000.0f;
@@ -130,30 +112,34 @@ HRESULT APIENTRY SetTexture_hook(LPDIRECT3DDEVICE9 pDevice, DWORD Sampler, IDire
 	}
 
 	//worldtoscreen weapons in hand
-	if ( (aimbot == 1||distanceesp == 1||shaderesp == 1||lineesp > 0||boxesp==1||picesp == 1) )
-		if ( (Stride == 48 && vSize > 1328) || (vSize == 2356 || vSize == 2008 || vSize == 1552) )
+	if ((aimbot == 1 || distanceesp == 1 || shaderesp == 1 || lineesp > 0 || boxesp == 1 || picesp == 1))
+		if ((Stride == 48 && vSize > 1328) || (vSize == 2356 || vSize == 2008 || vSize == 1552))
 			AddWeapons(pDevice);
-
-	//no grass by mtsagossi
-	if (nograss == 1)
-		if (vSize == 1660|| vSize == 1704)//grass
-			pDevice->SetPixelShader(NULL);
 
 	//no fog for models
 	if (nofog == 1)
-	if (Stride == 48 || vSize == 2008 || vSize == 2356)
-	{
-		D3DXMATRIX matLegs;
-		D3DXMatrixScaling(&matLegs, 0.0f, 0.0f, 0.0f);
-		pDevice->SetVertexShaderConstantF(20, matLegs, 1);//legs
+		if (Stride == 48 || vSize == 2008 || vSize == 2356)
+		{
+			D3DXMATRIX matLegs;
+			D3DXMatrixScaling(&matLegs, 0.0f, 0.0f, 0.0f);
+			pDevice->SetVertexShaderConstantF(20, matLegs, 1);//legs
 
-		D3DXMATRIX matChest;
-		D3DXMatrixScaling(&matChest, 0.0f, 0.0f, 0.0f);
-		pDevice->SetVertexShaderConstantF(25, matChest, 1);//chest
-	}
+			D3DXMATRIX matChest;
+			D3DXMatrixScaling(&matChest, 0.0f, 0.0f, 0.0f);
+			pDevice->SetVertexShaderConstantF(25, matChest, 1);//chest
+		}
+
+
+	pDevice->SetRenderState(D3DRS_FILLMODE, D3DFILL_SOLID);
+	//no grass by mtsagossi
+	if (nograss == 1)
+		if (vSize == 1660 || vSize == 1704)//grass
+		{
+			pDevice->SetRenderState(D3DRS_FILLMODE, D3DFILL_POINT);
+		}
 
 	//draw square on heads
-	if(depthcheck==1)
+	if (depthcheck == 1)
 	{
 		//get pSize
 		if (SUCCEEDED(pDevice->GetPixelShader(&pShader)))
@@ -166,7 +152,7 @@ HRESULT APIENTRY SetTexture_hook(LPDIRECT3DDEVICE9 pDevice, DWORD Sampler, IDire
 		if (pDecl != NULL)
 			pDecl->GetDeclaration(decl, &numElements);
 		if (pDecl != NULL) { pDecl->Release(); pDecl = NULL; }
-		
+
 		//get texture/desc size
 		if (numElements == 6 && Sampler == 0 && pTexture)
 		{
@@ -186,18 +172,17 @@ HRESULT APIENTRY SetTexture_hook(LPDIRECT3DDEVICE9 pDevice, DWORD Sampler, IDire
 					{
 						if (pLockedRect.pBits != NULL)
 							qCRC = QuickChecksum((DWORD*)pLockedRect.pBits, pLockedRect.Pitch); //get crc
-							//qCRC = QuickChecksum((DWORD*)pLockedRect.pBits, 12);
+																								//qCRC = QuickChecksum((DWORD*)pLockedRect.pBits, 12);
 					}
 					texture->UnlockRect(0);
 				}
 			}
 		}
-		out:
+	out:
 
-		
-		if (Stride == 36 && vSize == 2008 && pSize == 1724) //helmet
-		if (GetAsyncKeyState(VK_F10) & 1)
-		Log("Stride == %d && vSize == %d && pSize == %d && pLockedRect.Pitch == %d && qCRC == %x && qCRC == %d && numElements == %d && decl->Type == %d", Stride, vSize, pSize, pLockedRect.Pitch, qCRC, qCRC, numElements, decl->Type);
+		//if (Stride == 36 && vSize == 2008 && pSize == 1724) //helmet
+		//if (GetAsyncKeyState(VK_F10) & 1)
+		//Log("Stride == %d && vSize == %d && pSize == %d && pLockedRect.Pitch == %d && qCRC == %x && qCRC == %d && numElements == %d && decl->Type == %d", Stride, vSize, pSize, pLockedRect.Pitch, qCRC, qCRC, numElements, decl->Type);
 
 		//log hair
 		//if ((numElements == 6 || numElements == 10) && (vSize == 2356 && pSize != 1848))//hair
@@ -206,30 +191,28 @@ HRESULT APIENTRY SetTexture_hook(LPDIRECT3DDEVICE9 pDevice, DWORD Sampler, IDire
 
 		//log helmet (logs wrong values most of the time)
 		//if (numElements == 6 && Stride == 36 && vSize == 2008 && pSize == 1724) //helmet
-			//if (GetAsyncKeyState(VK_F10) & 1)
-				//Log("Stride == %d && vSize == %d && pSize == %d && pLockedRect.Pitch == %d && qCRC == %x && qCRC == %d && numElements == %d && decl->Type == %d", Stride, vSize, pSize, pLockedRect.Pitch, qCRC, qCRC, numElements, decl->Type);
-
-		pDevice->SetRenderState(D3DRS_FILLMODE, D3DFILL_SOLID);
+		//if (GetAsyncKeyState(VK_F10) & 1)
+		//Log("Stride == %d && vSize == %d && pSize == %d && pLockedRect.Pitch == %d && qCRC == %x && qCRC == %d && numElements == %d && decl->Type == %d", Stride, vSize, pSize, pLockedRect.Pitch, qCRC, qCRC, numElements, decl->Type);
 
 		//green hair
-		if ( (Stride == 36 && vSize == 2356 && pSize != 1848 && pLockedRect.Pitch == 2048 && numElements == 6) || //hair	
-			(Stride == 44 && vSize == 2356 && pSize == 2272 && pLockedRect.Pitch == 1024 && numElements == 10) ) //hair2
+		if ((Stride == 36 && vSize == 2356 && pSize != 1848 && pLockedRect.Pitch == 2048 && numElements == 6) || //hair	
+			(Stride == 44 && vSize == 2356 && pSize == 2272 && pLockedRect.Pitch == 1024 && numElements == 10)) //hair2
 		{
-			SetTexture_orig(pDevice, 0, Green);
-			SetTexture_orig(pDevice, 1, Green);
+			oSetTexture(pDevice, 0, Green);
+			oSetTexture(pDevice, 1, Green);
 		}
 
 		//red helmets
-		if ( (vSize == 2008 && qCRC == 0xc46ee841)||//helmet 1
-			(vSize == 2008 && qCRC == 0x9590d282)||//helmet 2
-			(vSize == 2008 && qCRC == 0xe248e914) )//helmet 3
+		if ((vSize == 2008 && qCRC == 0xc46ee841) ||//helmet 1
+			(vSize == 2008 && qCRC == 0x9590d282) ||//helmet 2
+			(vSize == 2008 && qCRC == 0xe248e914))//helmet 3
 		{
-			SetTexture_orig(pDevice, 0, Red);
-			SetTexture_orig(pDevice, 1, Red);
+			oSetTexture(pDevice, 0, Red);
+			oSetTexture(pDevice, 1, Red);
 		}
 
 		//make bigger
-		if( (Stride == 36 && vSize == 2356 && pSize != 1848 && pLockedRect.Pitch == 2048 && numElements == 6) || //hair	
+		if ((Stride == 36 && vSize == 2356 && pSize != 1848 && pLockedRect.Pitch == 2048 && numElements == 6) || //hair	
 			(Stride == 44 && vSize == 2356 && pSize == 2272 && pLockedRect.Pitch == 1024 && numElements == 10) || //hair2
 			(vSize == 2008 && qCRC == 0xc46ee841) ||//helmet 1
 			(vSize == 2008 && qCRC == 0x9590d282) ||//helmet 2
@@ -249,22 +232,22 @@ HRESULT APIENTRY SetTexture_hook(LPDIRECT3DDEVICE9 pDevice, DWORD Sampler, IDire
 	countnum++;
 	if (countnum == vSize / 100)//Stride)
 	if (GetAsyncKeyState('I') & 1) //log
-		Log("Stride == %d && vSize == %d && pSize == %d && sDesc.Width == %d && qCRC == %x && numElements == %d && decl->Type == %d", Stride, vSize, pSize, sDesc.Width, qCRC, numElements, decl->Type);
+	Log("Stride == %d && vSize == %d && pSize == %d && sDesc.Width == %d && qCRC == %x && numElements == %d && decl->Type == %d", Stride, vSize, pSize, sDesc.Width, qCRC, numElements, decl->Type);
 	if (countnum == vSize / 100)//Stride)
 	{
-		//SetTexture_orig(pDevice, 0, Yellow);
-		//SetTexture_orig(pDevice, 1, Yellow);
-		return D3D_OK; //delete texture
+	//SetTexture_orig(pDevice, 0, Yellow);
+	//SetTexture_orig(pDevice, 1, Yellow);
+	return D3D_OK; //delete texture
 	}
 	*/
-	return SetTexture_orig(pDevice, Sampler, pTexture);
+	return oSetTexture(pDevice, Sampler, pTexture);
 }
 
 //==========================================================================================================================
 
-HRESULT APIENTRY Present_hook(IDirect3DDevice9* pDevice, const RECT *pSourceRect, const RECT *pDestRect, HWND hDestWindowOverride, const RGNDATA *pDirtyRegion)
+HRESULT APIENTRY hkPresent(IDirect3DDevice9* pDevice, const RECT *pSourceRect, const RECT *pDestRect, HWND hDestWindowOverride, const RGNDATA *pDirtyRegion)
 {
-	if (GetAsyncKeyState(VK_ESCAPE) & 1||GetAsyncKeyState(VK_INSERT))
+	if (GetAsyncKeyState(VK_ESCAPE) & 1 || GetAsyncKeyState(VK_INSERT))
 	{
 		//get viewport again
 		pDevice->GetViewport(&Viewport);
@@ -277,7 +260,7 @@ HRESULT APIENTRY Present_hook(IDirect3DDevice9* pDevice, const RECT *pSourceRect
 		D3DXCreateFont(pDevice, 14, 0, FW_BOLD, 0, FALSE, DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, DEFAULT_QUALITY, DEFAULT_PITCH | FF_DONTCARE, TEXT("Italic"), &Font);
 
 	//create dxLine
-	if(!pLine)
+	if (!pLine)
 		D3DXCreateLine(pDevice, &pLine);
 
 	//create sprite
@@ -292,26 +275,11 @@ HRESULT APIENTRY Present_hook(IDirect3DDevice9* pDevice, const RECT *pSourceRect
 
 	//draw background
 	if (ShowMenu)
-		DrawBox(pDevice, 71.0f, 86.0f, 200.0f, 230.0f, D3DCOLOR_ARGB(120, 30, 200, 200));//200 = left/right, 220 = up/down
+		DrawBox(pDevice, 71.0f, 86.0f, 200.0f, 275.0f, D3DCOLOR_ARGB(120, 30, 200, 200));//200 = left/right, 275 = up/down
 
 	//draw menu
 	if (Font)
 		DrawMenu(pDevice);
-
-	//anti screenshot (may not work anymore)
-	if (screenshot_taken && Font)
-	{
-		DrawCenteredString(Font, (int)Viewport.Width/2, (int)Viewport.Height/2, D3DCOLOR_ARGB(255, 255, 255, 255), "Someone reported you. Screenshot blocked. (gmcomplaint.jpg)");
-
-		static DWORD lastTime = timeGetTime();
-		DWORD timePassed = timeGetTime() - lastTime;
-		if (timePassed>2000)
-		{
-			screenshot_taken = false;
-			LoadCfg();
-			lastTime = timeGetTime();
-		}
-	}
 
 	//Shift|RMouse|LMouse|Ctrl|Alt|Space|X|C
 	if (aimkey == 0) Daimkey = 0;
@@ -347,7 +315,7 @@ HRESULT APIENTRY Present_hook(IDirect3DDevice9* pDevice, const RECT *pSourceRect
 			DWORD col[4] = { 0xffffffff,0xffffffff,0xffffffff,0xffffffff };//white
 			//DWORD col[4] = { 0xffff0000,0xffff0000,0xffff0000,0xffff0000 };//gradient color (red)
 			if (WeaponEspInfo[i].pOutX > 1.0f && WeaponEspInfo[i].pOutY > 1.0f && (float)WeaponEspInfo[i].RealDistance > 4.0f)
-				DX9DrawEllipse(pDevice, (float)WeaponEspInfo[i].pOutX-6.0f, (float)WeaponEspInfo[i].pOutY-8.0f, 16.0f, 32.0f, 1.0f, col);//-8 or -9
+				DX9DrawEllipse(pDevice, (float)WeaponEspInfo[i].pOutX - 6.0f, (float)WeaponEspInfo[i].pOutY - 8.0f, 16.0f, 32.0f, 1.0f, col);//-8 or -9
 		}
 	}
 
@@ -499,13 +467,13 @@ HRESULT APIENTRY Present_hook(IDirect3DDevice9* pDevice, const RECT *pSourceRect
 	DrawString(Font, 220, 120, D3DCOLOR_ARGB(255, 255, 255, 255), (PCHAR)"hold O to -");
 	}
 	*/
-	
-	return Present_orig(pDevice, pSourceRect, pDestRect, hDestWindowOverride, pDirtyRegion);
+
+	return oPresent(pDevice, pSourceRect, pDestRect, hDestWindowOverride, pDirtyRegion);
 }
 
 //==========================================================================================================================
 
-HRESULT APIENTRY Reset_hook(IDirect3DDevice9* pDevice, D3DPRESENT_PARAMETERS *pPresentationParameters)
+HRESULT APIENTRY hkReset(IDirect3DDevice9* pDevice, D3DPRESENT_PARAMETERS *pPresentationParameters)
 {
 	DeleteSprite();
 
@@ -518,7 +486,7 @@ HRESULT APIENTRY Reset_hook(IDirect3DDevice9* pDevice, D3DPRESENT_PARAMETERS *pP
 	if (pSprite)
 		pSprite->OnLostDevice();
 
-	HRESULT ResetReturn = Reset_orig(pDevice, pPresentationParameters);
+	HRESULT ResetReturn = oReset(pDevice, pPresentationParameters);
 
 	if (SUCCEEDED(ResetReturn))
 	{
@@ -539,143 +507,118 @@ HRESULT APIENTRY Reset_hook(IDirect3DDevice9* pDevice, D3DPRESENT_PARAMETERS *pP
 
 //==========================================================================================================================
 
-HANDLE(WINAPI *Real_CreateFile)(LPCWSTR lpFileName,DWORD dwDesiredAccess,DWORD dwShareMode,LPSECURITY_ATTRIBUTES lpSecurityAttributes,DWORD dwCreationDisposition,DWORD dwFlagsAndAttributes,HANDLE hTemplateFile) = CreateFileW;
-HANDLE WINAPI Routed_CreateFile(LPCWSTR lpFileName, DWORD dwDesiredAccess, DWORD dwShareMode, LPSECURITY_ATTRIBUTES lpSecurityAttributes, DWORD dwCreationDisposition, DWORD dwFlagsAndAttributes, HANDLE hTemplateFile)
-{
-	char buffer[500];
-	wcstombs(buffer, lpFileName, 500);
-	if (strcmp(buffer + strlen(buffer) - 4, ".jpg") == 0)//find gm_complaint_x.jpg
-	{	
-		Log("buffer == %s", buffer);//log jpg
-	}
-	if (strcmp(buffer + strlen(buffer) - 4, ".bmp") == 0)
-	{
-		Log("buffer == %s", buffer);
-	}
+#define ENDSCENE 0 
+#define PRESENT 1 
+#define SETTEXTURE 2
+#define SETSTREAMSOURCE 3
+#define RESET 4
+//#define DRAWINDEXEDPRIMITIVE 5
+//#define SETVERTEXSHADERCONSTANTF 6
 
-	return Real_CreateFile(lpFileName, dwDesiredAccess, dwShareMode, lpSecurityAttributes, dwCreationDisposition, dwFlagsAndAttributes, hTemplateFile);
+bool hooked = false;
+#define HOOK(func,addy) o##func = (t##func)DetourFunction((PBYTE)addy,(PBYTE)hk##func)
+#define UNHOOK(func,addy) o##func = (t##func)DetourFunction((PBYTE)addy,(PBYTE)o##func)
+
+PBYTE HookVTable(PDWORD* dwVTable, PBYTE dwHook, INT Index)
+{
+	DWORD dwOld = 0;
+	VirtualProtect((void*)((*dwVTable) + (Index * 4)), 4, PAGE_EXECUTE_READWRITE, &dwOld);
+	PBYTE pOrig = ((PBYTE)(*dwVTable)[Index]);
+	(*dwVTable)[Index] = (DWORD)dwHook;
+	VirtualProtect((void*)((*dwVTable) + (Index * 4)), 4, dwOld, &dwOld);
+	return pOrig;
 }
 
-//==========================================================================================================================
-
-DWORD WINAPI RosD3D(__in LPVOID lpParameter)
+LRESULT CALLBACK MsgProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) { return DefWindowProc(hwnd, uMsg, wParam, lParam); }
+void DX_Init(DWORD* table)
 {
-	HMODULE dDll = NULL;
-	while (!dDll)
-	{
-		dDll = GetModuleHandleA("d3d9.dll");
-		Sleep(100);
-	}
-	CloseHandle(dDll);
-
-	IDirect3D9* d3d = NULL;
-	IDirect3DDevice9* d3ddev = NULL;
-
-	HWND tmpWnd = CreateWindowA("BUTTON", "RosD3D", WS_SYSMENU | WS_MINIMIZEBOX, CW_USEDEFAULT, CW_USEDEFAULT, 300, 300, NULL, NULL, Hand, NULL);
-	if (tmpWnd == NULL)
-	{
-		//Log("[DirectX] Failed to create temp window");
-		return 0;
-	}
-
-	d3d = Direct3DCreate9(D3D_SDK_VERSION);
-	if (d3d == NULL)
-	{
-		DestroyWindow(tmpWnd);
-		//Log("[DirectX] Failed to create temp Direct3D interface");
-		return 0;
-	}
-
+	WNDCLASSEXA wc = { sizeof(WNDCLASSEX),CS_CLASSDC,MsgProc,0L,0L,GetModuleHandleA(NULL),NULL,NULL,NULL,NULL,"DX",NULL };
+	RegisterClassExA(&wc);
+	HWND hWnd = CreateWindowA("DX", NULL, WS_OVERLAPPEDWINDOW, 100, 100, 300, 300, GetDesktopWindow(), NULL, wc.hInstance, NULL);
+	LPDIRECT3D9 pD3D = Direct3DCreate9(D3D_SDK_VERSION);
 	D3DPRESENT_PARAMETERS d3dpp;
 	ZeroMemory(&d3dpp, sizeof(d3dpp));
 	d3dpp.Windowed = TRUE;
 	d3dpp.SwapEffect = D3DSWAPEFFECT_DISCARD;
-	d3dpp.hDeviceWindow = tmpWnd;
 	d3dpp.BackBufferFormat = D3DFMT_UNKNOWN;
+	LPDIRECT3DDEVICE9 pd3dDevice;
+	pD3D->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, hWnd, D3DCREATE_SOFTWARE_VERTEXPROCESSING, &d3dpp, &pd3dDevice);
+	DWORD* pVTable = (DWORD*)pd3dDevice;
+	pVTable = (DWORD*)pVTable[0];
 
-	HRESULT result = d3d->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, tmpWnd, D3DCREATE_SOFTWARE_VERTEXPROCESSING, &d3dpp, &d3ddev);
-	if (result != D3D_OK)
+	table[ENDSCENE] = pVTable[42];
+	table[PRESENT] = pVTable[17];
+	table[SETTEXTURE] = pVTable[65];                    
+	table[SETSTREAMSOURCE] = pVTable[100];
+	table[RESET] = pVTable[16];
+	//table[DRAWINDEXEDPRIMITIVE] = pVTable[82];
+	//table[SETVERTEXSHADERCONSTANTF] = pVTable[94];
+
+
+	DestroyWindow(hWnd);
+}
+
+unsigned _stdcall VMT_Patching(LPVOID  Param)
+{
+	while (1)
 	{
-		d3d->Release();
-		DestroyWindow(tmpWnd);
-		//Log("[DirectX] Failed to create temp Direct3D device");
-		return 0;
+		Sleep(100);
+		HookVTable((PDWORD*)npDevice, (PBYTE)hkEndScene, 42);
+		HookVTable((PDWORD*)npDevice, (PBYTE)hkPresent, 17);
+		HookVTable((PDWORD*)npDevice, (PBYTE)hkSetTexture, 65);
+		HookVTable((PDWORD*)npDevice, (PBYTE)hkSetStreamSource, 100);
+		HookVTable((PDWORD*)npDevice, (PBYTE)hkReset, 16);
+		//HookVTable((PDWORD*)npDevice, (PBYTE)hkDrawIndexedPrimitive, 82);
+		//HookVTable((PDWORD*)npDevice, (PBYTE)hkSetVertexShaderConstantF, 94);
 	}
-
-	// We have the device, so walk the vtable to get the address of all the dx functions in d3d9.dll
-#if defined _M_X64
-	DWORD64* dVtable = (DWORD64*)d3ddev;
-	dVtable = (DWORD64*)dVtable[0];
-#elif defined _M_IX86
-	DWORD* dVtable = (DWORD*)d3ddev;
-	dVtable = (DWORD*)dVtable[0]; // == *d3ddev
-#endif
-	//Log("[DirectX] dVtable: %x", dVtable);
-
-	//for(int i = 0; i < 95; i++)
-	//{
-			//Log("[DirectX] vtable[%i]: %x, pointer at %x", i, dVtable[i], &dVtable[i]);
-	//}
- 
-	/*
-	// Alternative Detour x86
-	Present_orig = (Present_t)dVtable[17];
-	SetTexture_orig = (SetTexture_t)dVtable[65];
-	SetStreamSource_orig = (SetStreamSource_t)dVtable[100];
-	Reset_orig = (Reset_t)dVtable[17];
-	oGetRenderTargetData = (GetRenderTargetData_t)dVtable[32];
-	oCreateOffscreenPlainSurface = (CreateOffscreenPlainSurface_t)dVtable[36];
-
-	DetourTransactionBegin();
-	DetourUpdateThread(GetCurrentThread());
-	DetourAttach(&(PVOID&)SetStreamSource_orig, SetStreamSource_hook);
-	DetourAttach(&(PVOID&)SetTexture_orig, SetTexture_hook);
-	DetourAttach(&(PVOID&)Present_orig, Present_hook);
-	DetourAttach(&(PVOID&)Reset_orig, Reset_hook);
-	DetourAttach(&(PVOID&)oGetRenderTargetData, hkGetRenderTargetData);
-	DetourAttach(&(PVOID&)oCreateOffscreenPlainSurface, hkCreateOffscreenPlainSurface);
-	DetourAttach(&(PVOID&)Real_CreateFile, Routed_CreateFile);
-	DetourTransactionCommit();
-	*/
-	
-	// Detour functions x86 & x64
-	if (MH_Initialize() != MH_OK) { return 1; }
-	if (MH_CreateHook((DWORD_PTR*)dVtable[100], &SetStreamSource_hook, reinterpret_cast<void**>(&SetStreamSource_orig)) != MH_OK) { return 1; }
-	if (MH_EnableHook((DWORD_PTR*)dVtable[100]) != MH_OK) { return 1; }
-	if (MH_CreateHook((DWORD_PTR*)dVtable[65], &SetTexture_hook, reinterpret_cast<void**>(&SetTexture_orig)) != MH_OK) { return 1; }
-	if (MH_EnableHook((DWORD_PTR*)dVtable[65]) != MH_OK) { return 1; }
-	if (MH_CreateHook((DWORD_PTR*)dVtable[17], &Present_hook, reinterpret_cast<void**>(&Present_orig)) != MH_OK) { return 1; }
-	if (MH_EnableHook((DWORD_PTR*)dVtable[17]) != MH_OK) { return 1; }
-	if (MH_CreateHook((DWORD_PTR*)dVtable[16], &Reset_hook, reinterpret_cast<void**>(&Reset_orig)) != MH_OK) { return 1; }
-	if (MH_EnableHook((DWORD_PTR*)dVtable[16]) != MH_OK) { return 1; }
-
-	if (MH_CreateHook((DWORD_PTR*)dVtable[32], &hkGetRenderTargetData, reinterpret_cast<void**>(&oGetRenderTargetData)) != MH_OK) { return 1; }
-	if (MH_EnableHook((DWORD_PTR*)dVtable[32]) != MH_OK) { return 1; }
-	if (MH_CreateHook((DWORD_PTR*)dVtable[36], &hkCreateOffscreenPlainSurface, reinterpret_cast<void**>(&oCreateOffscreenPlainSurface)) != MH_OK) { return 1; }
-	if (MH_EnableHook((DWORD_PTR*)dVtable[36]) != MH_OK) { return 1; }
-	
-	HMODULE mod = LoadLibrary(TEXT("Kernel32.dll"));
-	void* ptr = GetProcAddress(mod, "CreateFileW");
-	MH_CreateHook(ptr, Routed_CreateFile, reinterpret_cast<void**>(&Real_CreateFile));
-	MH_EnableHook(ptr);
-
-	//Log("[Detours] Detours attached\n");
-
-	d3ddev->Release();
-	d3d->Release();
-	DestroyWindow(tmpWnd);
-
 	return 1;
 }
 
-//==========================================================================================================================
-
-BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserved)
+unsigned _stdcall LoopFunction(LPVOID lpParam)
 {
-	switch (ul_reason_for_call)
+	while (1) 
 	{
-	case DLL_PROCESS_ATTACH:
-		Hand = hModule;
+		if (hooked == false)
+		{
+			DWORD VTable[3] = { 0 };
+			while (GetModuleHandleA("d3d9.dll") == NULL)
+			{
+				Sleep(250);
+			}
+			DX_Init(VTable);
+
+			HOOK(EndScene, VTable[ENDSCENE]);
+			//pPresent = (oPresent)DetourFunction((PBYTE)VTable[ENDSCENE], (PBYTE)myPresent);
+
+			while (!npDevice)
+			{
+				Sleep(50);
+			}
+			UNHOOK(EndScene, VTable[ENDSCENE]);
+			//pPresent = (oPresent)DetourFunction((PBYTE)VTable[ENDSCENE], (PBYTE)pPresent);
+
+			*(PDWORD)&oEndScene = VTable[ENDSCENE];
+			*(PDWORD)&oPresent = VTable[PRESENT];
+			*(PDWORD)&oSetTexture = VTable[SETTEXTURE];
+			*(PDWORD)&oSetStreamSource = VTable[SETSTREAMSOURCE];
+			*(PDWORD)&oReset = VTable[RESET];
+
+			CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)VMT_Patching, NULL, 0, NULL);
+			//_beginthreadex(0, 0, VMT_Patching, 0, 0, 0);
+
+			hooked = true;
+
+			Sleep(200);
+		}
+	}
+	//return hooked;
+	return 0;
+}
+
+BOOL WINAPI DllMain(HMODULE hModule, DWORD dwReason, LPVOID lpReserved)
+{
+	if (dwReason == DLL_PROCESS_ATTACH)
+	{
 		DisableThreadLibraryCalls(hModule); //disable unwanted thread notifications to reduce overhead
 		GetModuleFileNameA(hModule, dlldir, 512);
 		for (int i = (int)strlen(dlldir); i > 0; i--)
@@ -686,14 +629,9 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserv
 				break;
 			}
 		}
-		CreateThread(0, 0, RosD3D, 0, 0, 0); //init our hooks
 
-		break;
-	case DLL_PROCESS_DETACH:
-		break;
-	case DLL_THREAD_ATTACH:
-	case DLL_THREAD_DETACH:
-		break;
+		CreateThread(0, 0, (LPTHREAD_START_ROUTINE)LoopFunction, 0, 0, 0);
+		//_beginthreadex(0,0,LoopFunction,0,0,0);
 	}
 	return TRUE;
 }

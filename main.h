@@ -1,16 +1,25 @@
-#include <windows.h>
+//includes
+#include <Windows.h>
+#include <process.h>
+#include <stdio.h>
 #include <fstream>
 #include <string>
 #include <vector>
-#include <d3d9.h>
-#pragma comment(lib, "d3d9.lib")
+#include <time.h>
 #pragma comment(lib, "winmm.lib")//time
 
-//dx sdk 
-//#include <d3dx9.h"
+#pragma comment(lib, "d3d9.lib")
+#include <d3d9.h>
+
+//detours
+#pragma comment(lib, "detours.lib")
+#include "detours.h"
+
+//dxsdk
+//#include <d3dx9.h>
 //#pragma comment(lib, "d3dx9.lib")
 
-//dx sdk if files are in ..\DXSDK dir
+//dxsdk with custom dir
 #include "DXSDK\d3dx9.h"
 #if defined _M_X64
 #pragma comment(lib, "DXSDK/x64/d3dx9.lib") 
@@ -18,26 +27,16 @@
 #pragma comment(lib, "DXSDK/x86/d3dx9.lib")
 #endif
 
-//if using ms detours
-//#include "detours\detours.h"
-//#pragma comment(lib, "detours/Detours.lib")
-
-//if using DX Includes
-//#include <DirectXMath.h>
-//using namespace DirectX;
-
-//if using minhook where files are in MinHook dir
-#include "MinHook/include/MinHook.h" //detour
 using namespace std;
 
 #pragma warning (disable: 4244) 
-#pragma warning (disable: 4996)
+//#pragma warning (disable: 4996)
 #define _CRT_SECURE_NO_DEPRECATE
 
 //==========================================================================================================================
 
 HMODULE Hand;
-LPDIRECT3DDEVICE9 pDevice;
+LPDIRECT3DDEVICE9 npDevice;
 
 UINT Stride;
 
@@ -60,8 +59,6 @@ LPDIRECT3DTEXTURE9 Red, Green, Blue, Yellow, White, Black;
 
 int countnum = -1;
 
-static BOOL screenshot_taken = FALSE;
-
 IDirect3DTexture9 *texture;
 D3DSURFACE_DESC sDesc;
 
@@ -76,7 +73,12 @@ D3DLOCKED_RECT pLockedRect;
 
 //features
 
-//visuals
+//group states
+int	esp_group = 1;
+int	aim_group = 1;
+int	misc_group = 1;
+
+//item states
 int wallhack = 1;				//wallhack
 int distanceesp = 1;			//distance esp
 int shaderesp = 0;				//shader esp
@@ -95,7 +97,7 @@ int aimsens = 1;				//aim sensitivity, makes aim smoother
 int aimfov = 3;					//aim field of view in % 
 int aimheight = 3;				//aim height value, high value aims higher
 
-//autoshoot settings
+								//autoshoot settings
 int autoshoot = 0;
 unsigned int asdelay = 49;		//use x-999 (shoot for xx millisecs, looks more legit)
 bool IsPressed = false;			//
@@ -319,7 +321,7 @@ void DrawLine(IDirect3DDevice9* pDevice, float X, float Y, float X2, float Y2, f
 {
 	D3DTLVERTEX qV[2] = {
 		{ (float)X , (float)Y, 0.0f, 1.0f, Color },
-		{ (float)X2 , (float)Y2 , 0.0f, 1.0f, Color },
+	{ (float)X2 , (float)Y2 , 0.0f, 1.0f, Color },
 	};
 	const DWORD D3DFVF_TL = D3DFVF_XYZRHW | D3DFVF_DIFFUSE | D3DFVF_TEX1;
 
@@ -368,11 +370,11 @@ VOID DrawLine2(IDirect3DDevice9* pDevice, FLOAT startx, FLOAT starty, FLOAT endx
 //fix me
 //void DrawLine3(LPDIRECT3DDEVICE9 pDevice, D3DCOLOR Color, int x, int y, int w)
 //{
-	//DrawP(pDevice, x, y, w, 2, Color);
+//DrawP(pDevice, x, y, w, 2, Color);
 //}
 
 //=====================================================================================================================
- 
+
 // draw sprite
 LPD3DXSPRITE pSprite, AiSprite1, AiSprite2, AiSprite3, AiSprite4, AiSprite5, AiSprite6 = NULL;
 LPDIRECT3DTEXTURE9 pSpriteTextureImage, AiSpriteTextureImage1, AiSpriteTextureImage2, AiSpriteTextureImage3, AiSpriteTextureImage4, AiSpriteTextureImage5, AiSpriteTextureImage6 = NULL;
@@ -483,10 +485,10 @@ void DrawAnim(IDirect3DDevice9* pDevice, int cx, int cy, float scalex, float sca
 
 		//timer
 		AiTime = GetTickCount64() / 160;//speed
-		if (AiTime - AiStartTime > 5)//starttime sec
+		if (AiTime - AiStartTime > 4)//starttime sec
 			AiStartTime = GetTickCount64() / 160;//speed
 
-		//ai scale
+												 //ai scale
 		D3DXMATRIX scaleMatrix;
 		D3DXMATRIX transMatrix;
 		D3DXMatrixScaling(&scaleMatrix, scalex, scaley, scalez);//scale
@@ -533,14 +535,15 @@ void DrawAnim(IDirect3DDevice9* pDevice, int cx, int cy, float scalex, float sca
 			AiSprite5->Draw(AiSpriteTextureImage5, NULL, NULL, &position, 0xFFFFFFFF);
 			AiSprite5->End();
 		}
-
+		/*
 		if (AiTime - AiStartTime == 5)
 		{
-			AiSprite6->SetTransform(&transMatrix);
-			AiSprite6->Begin(D3DXSPRITE_ALPHABLEND);
-			AiSprite6->Draw(AiSpriteTextureImage6, NULL, NULL, &position, 0xFFFFFFFF);
-			AiSprite6->End();
+		AiSprite6->SetTransform(&transMatrix);
+		AiSprite6->Begin(D3DXSPRITE_ALPHABLEND);
+		AiSprite6->Draw(AiSpriteTextureImage6, NULL, NULL, &position, 0xFFFFFFFF);
+		AiSprite6->End();
 		}
+		*/
 	}
 }
 
@@ -686,6 +689,9 @@ void SaveCfg()
 {
 	ofstream fout;
 	fout.open(GetDirFile((PCHAR)"rosd3d.ini"), ios::trunc);
+	fout << "esp_group " << esp_group << endl;
+	fout << "aim_group " << aim_group << endl;
+	fout << "misc_group " << misc_group << endl;
 	fout << "wallhack " << wallhack << endl;
 	fout << "distanceesp " << distanceesp << endl;
 	fout << "shaderesp " << shaderesp << endl;
@@ -709,6 +715,9 @@ void LoadCfg()
 	ifstream fin;
 	string Word = "";
 	fin.open(GetDirFile((PCHAR)"rosd3d.ini"), ifstream::in);
+	fin >> Word >> esp_group;
+	fin >> Word >> aim_group;
+	fin >> Word >> misc_group;
 	fin >> Word >> wallhack;
 	fin >> Word >> distanceesp;
 	fin >> Word >> shaderesp;
@@ -726,76 +735,6 @@ void LoadCfg()
 	fin >> Word >> depthcheck;
 	fin.close();
 }
-
-//==========================================================================================================================
-/*
-class CTimer
-{
-public:
-	ULONGLONG dwTime;
-	bool bEnable;
-	CTimer()
-	{
-		dwTime = 0;
-		bEnable = true;
-	}
-	bool delay(DWORD dwMsec);
-	void reset();
-	void stop();
-};
-
-bool CTimer::delay(DWORD dwMsec)
-{
-	if (!bEnable)
-		return true;
-
-	if (!dwTime)
-		dwTime = GetTickCount64();
-
-	if (dwTime + dwMsec < GetTickCount64())
-	{
-		//dwTime = 0;
-		bEnable = false;
-		return true;
-	}
-	else
-	{
-		return false;
-	}
-}
-
-void CTimer::reset()
-{
-	dwTime = 0;
-	bEnable = true;
-}
-
-void CTimer::stop()
-{
-	bEnable = false;
-}
-*/
-/*
-//1
-static ULONGLONG timefirst = GetTickCount64();
-if (GetTickCount64() - timefirst > 2000)
-{
-DrawCenteredString(Font, 180, 200, D3DCOLOR_ARGB(255, 255, 255, 0), "11111111111111");
-timefirst = GetTickCount64();
-}
-
-//2 same
-static CTimer TriggerDelayZoom;
-if (TriggerDelayZoom.delay(2000))
-{
-TriggerDelayZoom.reset();
-DrawCenteredString(Font, 180, 220, D3DCOLOR_ARGB(255, 255, 255, 0), "11111111111111");
-}
-else//optional
-{
-//DrawCenteredString(Font, 180, 240, D3DCOLOR_ARGB(255, 255, 255, 0), "22222222222222");
-}
-*/
 
 //==========================================================================================================================
 
@@ -892,27 +831,6 @@ void lWriteText(int x, int y, DWORD color, char *text)
 	Font->DrawTextA(0, text, -1, &rect, DT_NOCLIP | DT_RIGHT, color);
 }
 
-void Category(LPDIRECT3DDEVICE9 pDevice, char *text)
-{
-	if (ShowMenu)
-	{
-		int Check = CheckTab(PosX + 44, (PosY + 51) + (Current * 15), 190, 10);
-		DWORD ColorText;
-
-		ColorText = D3DCOLOR_ARGB(255, 255, 0, 255);
-
-		if (Check == 2)
-			ColorText = D3DCOLOR_ARGB(255, 255, 255, 255);
-
-		if (menuselect == Current)
-			ColorText = D3DCOLOR_ARGB(255, 255, 255, 255);
-
-		WriteText(PosX + 44, PosY + 50 + (Current * 15) - 1, ColorText, text);
-		lWriteText(PosX + 236, PosY + 50 + (Current * 15) - 1, ColorText, (PCHAR)"[-]");
-		Current++;
-	}
-}
-
 void AddItem(LPDIRECT3DDEVICE9 pDevice, char *text, int &var, char **opt, int MaxValue)
 {
 	if (ShowMenu)
@@ -974,6 +892,11 @@ void AddItem(LPDIRECT3DDEVICE9 pDevice, char *text, int &var, char **opt, int Ma
 	}
 }
 
+void AddGroup(LPDIRECT3DDEVICE9 pDevice, char *txt, int &var, char **opt, int maxval)
+{
+	AddItem(pDevice, txt, var, opt, maxval);
+}
+
 //==========================================================================================================================
 
 // menu part
@@ -1013,28 +936,36 @@ void DrawMenu(LPDIRECT3DDEVICE9 pDevice)
 
 		Current = 1;
 
+		AddGroup(pDevice, (PCHAR)"[-=ESP SETTINGS=-]", esp_group, opt_OnOff, 1);
+		if (esp_group) {
+			AddItem(pDevice, (PCHAR)"Distance Esp", distanceesp, opt_OnOff, 1);
+			AddItem(pDevice, (PCHAR)"Shader Esp", shaderesp, opt_OnOff, 1);
+			AddItem(pDevice, (PCHAR)"Line Esp", lineesp, opt_ZeroTen, 11);
+			AddItem(pDevice, (PCHAR)"Box Esp", boxesp, opt_OnOff, 1);
+			AddItem(pDevice, (PCHAR)"Pic Esp", picesp, opt_OnOff, 1);
+		}
+		AddGroup(pDevice, (PCHAR)"[-=AIM SETTINGS=-]", aim_group, opt_OnOff, 1);
+		if (aim_group) {
+			AddItem(pDevice, (PCHAR)"Aimbot", aimbot, opt_OnOff, 1);
+			AddItem(pDevice, (PCHAR)"Aimkey", aimkey, opt_Keys, 8);
+			AddItem(pDevice, (PCHAR)"Aimsens", aimsens, opt_ZeroTen, 10);
+			AddItem(pDevice, (PCHAR)"Aimfov", aimfov, opt_aimfov, 9);
+			AddItem(pDevice, (PCHAR)"Aimheight", aimheight, opt_ZeroTen, 5);
+		}
+		AddGroup(pDevice, (PCHAR)"[-=MISC SETTINGS=-]", misc_group, opt_OnOff, 1);
+		if (misc_group) {
 		AddItem(pDevice, (PCHAR)"Wallhack", wallhack, opt_WhChams, 2);
-		AddItem(pDevice, (PCHAR)"Distance Esp", distanceesp, opt_OnOff, 1);
-		AddItem(pDevice, (PCHAR)"Shader Esp", shaderesp, opt_OnOff, 1);
-		AddItem(pDevice, (PCHAR)"Line Esp", lineesp, opt_ZeroTen, 11);
-		AddItem(pDevice, (PCHAR)"Box Esp", boxesp, opt_OnOff, 1);
-		AddItem(pDevice, (PCHAR)"Pic Esp", picesp, opt_OnOff, 1);
-		AddItem(pDevice, (PCHAR)"Aimbot", aimbot, opt_OnOff, 1);
-		AddItem(pDevice, (PCHAR)"Aimkey", aimkey, opt_Keys, 8);
-		AddItem(pDevice, (PCHAR)"Aimsens", aimsens, opt_ZeroTen, 10);
-		AddItem(pDevice, (PCHAR)"Aimfov", aimfov, opt_aimfov, 9);
-		AddItem(pDevice, (PCHAR)"Aimheight", aimheight, opt_ZeroTen, 5);
 		AddItem(pDevice, (PCHAR)"Autoshoot", autoshoot, opt_autoshoot, 1);
 		AddItem(pDevice, (PCHAR)"No Grass", nograss, opt_OnOff, 1);
 		AddItem(pDevice, (PCHAR)"No Fog", nofog, opt_OnOff, 1);
 		AddItem(pDevice, (PCHAR)"DepthCheck", depthcheck, opt_OnOff, 1);
-
+		}
+	
 		if (menuselect >= Current)
 			menuselect = 1;
 
 		if (menuselect < 1)
-			menuselect = 15;//Current;
+			menuselect = 18;//Current;
 	}
 }
 
-//=====================================================================================================================
