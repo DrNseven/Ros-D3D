@@ -576,8 +576,8 @@ unsigned _stdcall VMT_Patching(LPVOID  Param)
 
 unsigned _stdcall LoopFunction(LPVOID lpParam)
 {
-	while (1) 
-	{
+	//while (1) 
+	//{
 		if (hooked == false)
 		{
 			DWORD VTable[3] = { 0 };
@@ -610,9 +610,9 @@ unsigned _stdcall LoopFunction(LPVOID lpParam)
 
 			Sleep(200);
 		}
-	}
-	//return hooked;
-	return 0;
+		return hooked;
+	//}
+	//return 0;
 }
 
 BOOL WINAPI DllMain(HMODULE hModule, DWORD dwReason, LPVOID lpReserved)
